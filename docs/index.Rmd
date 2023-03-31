@@ -1,0 +1,26 @@
+---
+title: '589'
+author: "Jonah, Madison & Avishek"
+date: "2023-03-31"
+output:
+ html_document:
+    fig_caption: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+# Methods
+
+# Results
+
+# Discussion
+
+# References
