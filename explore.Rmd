@@ -22,11 +22,11 @@ lck <- occ_search(scientificName = "Lynx canadensis Kerr, 1792", limit = 10164)
 ```{r}
 lc.data <- lck$data
 # Export data as csv file
-write.csv(lc.data, "datasets/raw/lc.csv", row.names = FALSE)
+write.csv(lc.data, "datasets/raw/lc_raw.csv", row.names = FALSE)
 ```
 
 ```{r}
-lc.data <- read.csv("datasets/raw/lc.csv")
+lc.data <- read.csv("datasets/raw/lc_raw.csv")
 ```
 
 ```{r}
