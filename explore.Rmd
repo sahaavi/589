@@ -1,0 +1,47 @@
+---
+title: "explore"
+author: "Avishek"
+date: "2023-04-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import the Dataset
+
+```{r}
+# install.packages(c("rgbif", "plyr"))
+library(rgbif)
+# For single species
+lck <- occ_search(scientificName = "Lynx canadensis Kerr, 1792", limit = 10164)
+```
+
+
+```{r}
+lc.data <- lck$data
+# Export data as csv file
+write.csv(lc.data, "datasets/raw/lc.csv", row.names = FALSE)
+```
+
+```{r}
+lc.data <- read.csv("datasets/raw/lc.csv")
+```
+
+```{r}
+colnames(lc.data)
+```
+
+```{r}
+# percentage of missing values in each column in training dataset
+p <- function(x) {sum(is.na(x))/length(x)*100}
+sort(apply(lc.data, 2, p)) # marmin = 2 means function will be applied in each column 
+```
+
+```{r}
+lc <- lc.data[, c('countryCode', 'stateProvince', 'higherClassification', 'month', 'locality', 'higherGeography', 'sex', 'decimalLatitude', 'decimalLongitude', 'dateIdentified', 'coordinateUncertaintyInMeters', 'footprintWKT', 'country')]
+
+write.csv(lc, "datasets/processed/lc.csv", row.names = FALSE)
+```
+
