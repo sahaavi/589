@@ -40,8 +40,41 @@ sort(apply(lc.data, 2, p)) # marmin = 2 means function will be applied in each c
 ```
 
 ```{r}
+# Provinces
+unique(lc$stateProvince)
+```
+
+
+```{r}
 lc <- lc.data[, c('countryCode', 'stateProvince', 'higherClassification', 'month', 'locality', 'higherGeography', 'sex', 'decimalLatitude', 'decimalLongitude', 'dateIdentified', 'coordinateUncertaintyInMeters', 'footprintWKT', 'country')]
 
+lc <- lc[lc$stateProvince == 'British Columbia' & !is.na(lc$stateProvince),]
+```
+
+```{r}
 write.csv(lc, "datasets/processed/lc.csv", row.names = FALSE)
 ```
 
+## Plot the data
+
+```{r}
+lc <- read.csv("datasets/processed/lc.csv")
+```
+
+Plot the whole data
+
+```{r}
+plot(decimalLatitude ~ decimalLongitude,
+     pch = 16,
+     col = "#046C9A",
+     data = lc.data)
+```
+
+Plot the BC data
+
+```{r}
+plot(decimalLatitude ~ decimalLongitude,
+     pch = 16,
+     col = "#046C9A",
+     data = lc)
+```
