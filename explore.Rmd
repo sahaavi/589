@@ -48,8 +48,31 @@ unique(lc$stateProvince)
 ```{r}
 lc <- lc.data[, c('countryCode', 'stateProvince', 'higherClassification', 'month', 'locality', 'higherGeography', 'sex', 'decimalLatitude', 'decimalLongitude', 'dateIdentified', 'coordinateUncertaintyInMeters', 'footprintWKT', 'country')]
 
-lc <- lc[lc$stateProvince == 'British Columbia' & !is.na(lc$stateProvince),]
+lc <- lc[lc$stateProvince == 'British Columbia' & !is.na(lc$stateProvince) & !is.na(lc$decimalLatitude) & !is.na(lc$decimalLongitude),]
 ```
+
+
+```{r}
+# Load required libraries
+library(sp)
+library(rgdal)
+
+# Create a SpatialPointsDataFrame object using the lc df
+lc_sp <- SpatialPointsDataFrame(coords = lc[, c("decimalLongitude", "decimalLatitude")],
+                                       data = lc)
+
+# Assign the WGS84 CRS (EPSG:4326) to the lc_sp object
+proj4string(lc_sp) <- CRS("+proj=longlat +datum=WGS84")
+
+# Transform the coordinates to match the CRS of the BC_win object
+bc_crs <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs"
+lc_transformed <- spTransform(lc_sp, CRS(bc_crs))
+
+# extract the transformed coordinates and assign them to lc df
+lc$decimalLongitude <- lc_transformed@coords[, 1]
+lc$decimalLatitude <- lc_transformed@coords[, 2]
+```
+
 
 ```{r}
 write.csv(lc, "datasets/processed/lc.csv", row.names = FALSE)
@@ -78,3 +101,106 @@ plot(decimalLatitude ~ decimalLongitude,
      col = "#046C9A",
      data = lc)
 ```
+
+Visualizing the observation window
+
+```{r}
+library(spatstat)
+library(sf)
+load("datasets/raw/BC_Covariates.Rda")
+# Create a SpatialPolygons object for the window
+bc_window_sf <- st_as_sf(DATA$Window)
+bc_window_owin <- as.owin(bc_window)
+# Visualize the window
+plot(bc_window_owin, main = "Observation Window")
+```
+
+```{r}
+# Convert to a ppp object
+lc_ppp <- ppp(x = lc$decimalLongitude, # X coordinates
+              y = lc$decimalLatitude, # Y coordinates
+              window = bc_window_owin, # Observation window
+              )
+
+# Plot the ppp object
+plot(lc_ppp, main = "Marked Canada Lynx")
+```
+
+```{r}
+# Convert to a ppp object
+lc_ppp <- ppp(x = lc$decimalLongitude, # X coordinates
+              y = lc$decimalLatitude, # Y coordinates
+              window = bc_window # Observation window
+)
+
+# Check which points are inside the window
+lc_in_window <- inside.owin(lc_ppp, w = bc_window)
+
+# Identify which points are outside the window
+lc_outside_window <- !lc_in_window
+
+# Remove the points that are outside the window
+lc <- lc[lc_in_window, ]
+
+# Find the points outside the window
+lc_outside <- lc[lc_outside_window, ]
+
+# # Plot the points outside the window
+# plot(lc_outside, pch = 20, col = "red", add = TRUE)
+# 
+# # Convert to a ppp object
+# lc_ppp <- ppp(x = lc$decimalLongitude, # X coordinates
+#               y = lc$decimalLatitude, # Y coordinates
+#               window = bc_window # Observation window
+# )
+# 
+# # Plot the ppp object
+# plot(lc_ppp, main = "Marked Canada Lynx")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
