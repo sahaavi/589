@@ -1,0 +1,180 @@
+---
+title: "Exploratory Analysis"
+date: "2023-04-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+lc <- read.csv("datasets/processed/lc.csv")
+```
+
+## First moment descriptive statistics
+
+Plot Canada Lynx within BC
+
+```{r}
+plot(decimalLatitude ~ decimalLongitude,
+     pch = 16,
+     col = "#046C9A",
+     data = lc)
+```
+
+Visualizing the observation window
+
+```{r}
+library(spatstat)
+library(sf)
+load("datasets/raw/BC_Covariates.Rda")
+# Create a SpatialPolygons object for the window
+bc_window_sf <- st_as_sf(DATA$Window)
+bc_window_owin <- as.owin(bc_window_sf)
+# Visualize the window
+plot(bc_window_owin, main = "Observation Window")
+```
+
+Plot observations in BC window
+
+```{r}
+# Convert to a ppp object
+lc_ppp <- ppp(x = lc$decimalLongitude, # X coordinates
+              y = lc$decimalLatitude, # Y coordinates
+              window = bc_window_owin, # Observation window
+              )
+
+# Access the rejected points
+# attr(lc_ppp, "rejects")
+
+#  Remove rejected/out of window points
+lc_ppp <- as.ppp(lc_ppp)
+
+# Plot the ppp object
+plot(lc_ppp, 
+     pch = 16,
+     cex = 0.5,
+     cols = "#046C9A",
+     main = "Marked Canada Lynx")
+```
+
+```{r}
+#Get units
+unitname(lc_ppp)
+```
+
+
+```{r}
+summary(lc_ppp)
+```
+
+### Intensity
+
+```{r}
+#Split into a 3 by 3 quadrat and count points
+Q <- quadratcount(lc_ppp,
+                  nx = 10,
+                  ny = 10)
+#Plot the output
+plot(lc_ppp,
+     pch = 16,
+     cex = 0.5,
+     cols = "#046C9A",
+     main = "Lynx locations")
+
+plot(Q, cex = 2, col = "red", add = T)
+```
+
+```{r}
+#Plot the output Note the use of image = TRUE
+plot(intensity(Q, image = T),
+     main = "Lynx intensity")
+
+plot(lc_ppp, pch = 16, cex = 0.6, cols = "white", add = T)
+
+plot(lc_ppp, pch = 16, cex = 0.5, cols = "black", add = T)
+```
+
+Clearly, the assumption of homogeneity is not appropriate for this dataset as the lynx tend to be clustered in certain areas of the study site, whereas others have no trees at all.
+
+Quadrat test of homogeneity
+
+```{r}
+quadrat.test(Q)
+```
+
+The small p-value suggests that there is a significant deviation from homogeneity.
+
+### Relationships with covariates
+
+We are usually interested in determining whether the intensity depends on a covariate(s). One simple approach to check for a relationship between inhomogeneous $\lambda(u)$ and a spatial covariate $Z(u)$ is via quadrat counting.
+
+```{r}
+# Create 5 classes with equal width
+elev_classes <- cut(DATA$Elevation, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+table(elev_classes[lc_ppp])
+```
+
+## Second Moment Descriptives
+
+### K-Function
+
+```{r}
+# Estimate the k- function
+k_lc <- Kest(lc_ppp)
+# visualise the results
+plot (k_lc, main = "Homogeneous K-Function", lwd = 2)
+```
+
+Here we can see that theoretical k-function $k_{pois}(r)$ deviates from other k-function corrections indicates clustering but these estimates assume homogeneity.
+
+```{r}
+# Bootstrapped CIs
+# rank = 1 means the max and min
+# values will be used for CI
+E_lc <- envelope(finpines , Kest , rank = 1, nsim = 19, fix.n = T)
+# visualise the results
+plot (E_lc , main = "Homogeneous K-function")
+```
+
+Now we have evidence that suggests significant clustering, but these estimates assume homogeneity.
+
+Relaxing homogeneity assumption.
+
+```{r}
+#Estimate intensity
+lambda_lc <- density(lc_ppp, bw.ppl)
+Kinhom_lc <- Kinhom(lc_ppp, lambda_lc)
+# Estimate a strictly positive density
+lambda_lc_pos <- density(lc_ppp, sigma=bw.ppl, positive=TRUE)
+# Simulation envelope (with points drawn from the estimated intensity)
+E_lc_inhom <- envelope(lc_ppp, 
+                        Kinhom, 
+                        simulate = expression(rpoispp(lambda_lc_pos)), 
+                        correction="border", 
+                        rank = 1, 
+                        nsim = 19, 
+                        fix.n = TRUE)
+# visualise the results
+plot(E_lc_inhom, xlim = c(0,320000), main = "Inhomogeneous K-function", lwd = 2)
+```
+
+When correcting for inhomogeneity, the clustering is not as strong homogeneous k-function. Significant clustering appears to exist in and around 0 to 125000 units, 200000 to 217000, 250000 to 300000.
+
+### Pair Correlation Function
+
+```{r}
+#Simulation envelope (with points drawn from the estimated intensity)
+pcf_lc_inhom <- envelope(lc_ppp, 
+                          pcfinhom, 
+                          simulate = expression(rpoispp(lambda_lc_pos)), 
+                          rank = 1, 
+                          nsim = 19)
+
+# visualise the results
+plot(pcf_lc_inhom, main = "Inhomogeneous g-function")
+```
+
+Seems like clustering occurs for ca. 15000.
