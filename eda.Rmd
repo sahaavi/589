@@ -174,7 +174,10 @@ pcf_lc_inhom <- envelope(lc_ppp,
                           nsim = 19)
 
 # visualise the results
+par(mfrow = c(1,2))
 plot(pcf_lc_inhom, main = "Inhomogeneous g-function")
+# Zoom in on range where significant deviations appear
+plot(pcf_lc_inhom, xlim = c(0,20000), main = "", lwd = 2)
 ```
 
-Seems like clustering occurs for ca. 15000.
+Seems like clustering occurs for ca. 13500. There appear to be more lynx than expected by random chance between 0 - 13500. Beyond that, the locations of lynx appear not to exhibit any significant correlations.
