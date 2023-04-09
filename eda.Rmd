@@ -1,11 +1,13 @@
 ---
 title: "Exploratory Analysis"
-date: "2023-04-08"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,
+                      message=FALSE,
+                      warning=FALSE)
 ```
 
 
@@ -67,7 +69,8 @@ unitname(lc_ppp)
 
 
 ```{r}
-summary(lc_ppp)
+# summary(lc_ppp)
+intensity(lc_ppp)
 ```
 
 ### Intensity
@@ -112,10 +115,107 @@ The small p-value suggests that there is a significant deviation from homogeneit
 We are usually interested in determining whether the intensity depends on a covariate(s). One simple approach to check for a relationship between inhomogeneous $\lambda(u)$ and a spatial covariate $Z(u)$ is via quadrat counting.
 
 ```{r}
-# Create 5 classes with equal width
+# Create 5 elevation classes with equal width
 elev_classes <- cut(DATA$Elevation, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
 table(elev_classes[lc_ppp])
 ```
+
+```{r}
+library(viridis)
+cols = terrain.colors(5)
+# Plot the elevation class image and overlay the lynx locations
+plot(elev_classes, col = cols, main = "Elevation Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.6, col = "black")
+```
+
+
+```{r}
+# Create 5 forest classes with equal width
+forest_classes <- cut(DATA$Forest, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+table(forest_classes[lc_ppp])
+```
+
+```{r}
+# Plot the forest class image and overlay the lynx locations
+plot(forest_classes, col = cols, main = "Forest Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.6, col = "black")
+```
+
+
+```{r}
+# Create 5 human footprint index classes with equal width
+hfi_classes <- cut(DATA$HFI, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+table(hfi_classes[lc_ppp])
+```
+
+```{r}
+# Plot the human footprint index class image and overlay the lynx locations
+plot(hfi_classes, main = "Footprint Index Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.5, col = "white")
+```
+
+
+```{r}
+# Create 5 dist water classes with equal width
+dist_water_classes <- cut(DATA$Dist_Water, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+table(dist_water_classes[lc_ppp])
+```
+
+```{r}
+# Plot the dist wanter class image and overlay the lynx locations
+plot(dist_water_classes, main = "Dist Water Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.5, col = "white")
+```
+
+Based on a visual inspection, it appears that the heterogeneity observed in the data may be associated with a preference for certain elevations and distances from water.
+
+### Plot on BC Map
+
+```{r}
+library(raster)
+dmap1 <- density.ppp(lc_ppp, sigma = bw.ppl(lc_ppp),edge=T)
+r1 <- raster(dmap1)
+```
+
+```{r}
+library(leaflet)
+#make sure we have right CRS, which in this case is British National Grid
+
+bc_crs <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs"
+
+crs(r1) <- sp::CRS(bc_crs)
+```
+
+```{r}
+# create a colour palet
+pal <- colorNumeric(c("#41B6C4", "red"), values(r1),
+  na.color = "transparent")
+
+#and then make map!
+leaflet() %>% 
+  addTiles() %>%
+  addRasterImage(r1, colors = pal, opacity = 0.8) %>%
+  addLegend(pal = pal, values = values(r1),
+    title = "Canada Lynx in BC") 
+```
+
+
+
+### Nearest neighbour distances
+
+```{r}
+col_pal <- colorRampPalette(c('orange', 'green'))
+# Calculate nearest neighbor distances
+nn_dist <- data.frame(nndist(lc_ppp))
+# Add distance to nearest neighbor mark
+marks(lc_ppp) <- nn_dist
+# Plot point pattern with distance to nearest neighbor mark
+plot(lc_ppp, main = "Seperation Distance", 
+     which.marks = NULL, 
+     cols = col_pal(nrow(nn_dist)), #The colours of the points
+     pch = 16)
+```
+
 
 ## Second Moment Descriptives
 
@@ -181,3 +281,28 @@ plot(pcf_lc_inhom, xlim = c(0,20000), main = "", lwd = 2)
 ```
 
 Seems like clustering occurs for ca. 13500. There appear to be more lynx than expected by random chance between 0 - 13500. Beyond that, the locations of lynx appear not to exhibit any significant correlations.
+
+
+## Fit Model
+
+```{r}
+DATA$Species <- lc
+```
+
+```{r}
+# create a factor variable defining point types based on the "Species" variable
+type_var <- factor(lc_ppp$marks)
+
+# create a multitype point pattern object
+lcm_ppp <- ppp(x = lc_ppp$x, y = lc_ppp$y, marks = list(type = type_var))
+
+# fit a multitype point process model to the data
+fit <- ppm(lcm_ppp ~ Elevation, data = DATA)
+```
+
+
+```{r}
+# Fit the PPP model
+fit <- ppm(lc_ppp ~ Elevation , data = DATA)
+```
+
