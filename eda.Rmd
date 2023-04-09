@@ -285,24 +285,20 @@ Seems like clustering occurs for ca. 13500. There appear to be more lynx than ex
 
 ## Fit Model
 
-```{r}
-DATA$Species <- lc
-```
+# ```{r}
+# DATA$Species <- lc
+# ```
+# 
+# ```{r}
+# # create a factor variable defining point types based on the "Species" variable
+# type_var <- factor(lc_ppp$marks)
+# 
+# # create a multitype point pattern object
+# lcm_ppp <- ppp(x = lc_ppp$x, y = lc_ppp$y, marks = list(type = type_var))
+# 
+# # fit a multitype point process model to the data
+# fit <- ppm(lcm_ppp ~ Elevation, data = DATA)
+# ```
 
-```{r}
-# create a factor variable defining point types based on the "Species" variable
-type_var <- factor(lc_ppp$marks)
 
-# create a multitype point pattern object
-lcm_ppp <- ppp(x = lc_ppp$x, y = lc_ppp$y, marks = list(type = type_var))
-
-# fit a multitype point process model to the data
-fit <- ppm(lcm_ppp ~ Elevation, data = DATA)
-```
-
-
-```{r}
-# Fit the PPP model
-fit <- ppm(lc_ppp ~ Elevation , data = DATA)
-```
 
