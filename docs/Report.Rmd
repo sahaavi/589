@@ -1,0 +1,33 @@
+---
+title: "Report"
+author: "Madison Greenough, Avishek Saha, Jonah Edmundson"
+date: "2023-04-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+The Canadian Lynx, known scientifically as the Lynx canadensis Kerr, are a marvelous species found within British Columbia. For this report, a spatial analysis of this species will be conducted. Given that the lynx are a part of the feline family, we hypothesize that they will habitate in forested areas, in small groups, with minimal movement. In other words, we expect that they will reside in an area long term without significant travelling or relocating.
+
+# Methods
+
+
+
+
+# Results
+
+
+
+
+# Discussions
+
+
+
+
+# References
+
+GBIF.org (01 April 2023) GBIF Occurrence Download https://doi.org/10.15468/dl.zeymyk
