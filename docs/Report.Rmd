@@ -9,21 +9,21 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Introduction
+# Introduction (1 pg)
 
-The Canadian Lynx, known scientifically as the Lynx canadensis Kerr, are a marvelous species found within British Columbia. For this report, a spatial analysis of this species will be conducted. Given that the lynx are a part of the feline family, we hypothesize that they will habitate in forested areas, in small groups, with minimal movement. In other words, we expect that they will reside in an area long term without significant travelling or relocating.
+The Canadian Lynx, known scientifically as the Lynx canadensis Kerr, are a marvelous species found within British Columbia. For this report, a spatial analysis of this species will be conducted. Given that the lynx are a part of the feline family, we hypothesize that they will habitate in forested areas, in small groups, with minimal movement. In other words, we expect that they will reside in an area long term without significant travelling or relocating. We also predict that they will reside in colder locations, so their presence may not be found in the warmer areas of BC, such as the southern interior.
 
-# Methods
+# Methods (unlimited)
 
-
-
-
-# Results
+The dataset contains 13 variables and there are 178 rows, or entries. The variables included 
 
 
+# Results (unlimited)
 
 
-# Discussions
+
+
+# Discussions (1 pg - brief summary of findings)
 
 
 
