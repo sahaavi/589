@@ -17,6 +17,17 @@ The Canadian Lynx, known scientifically as the Lynx canadensis Kerr, are a marve
 
 The dataset contains 13 variables and there are 178 rows, or entries. The variables include countryCode (str, which have all been filtered to CA for Canada), stateProvince (str, filtered for British Columbia), higherClassification (str, additional species information). month (int, month of occurrence), locality (str, region description), higherGeography (str, more broad region), sex (str, contains male, female, or NA), decimalLatitude (float), decimalLongitude (float), dateIdentified (date-time value, date of identification), coordinateUncertaintyInMeters (int, uncertainty value), footprintWKT (list of int, measurement values), and country (str, filtered to Canada).
 
+To begin, first moment descriptive statistics were visualized. Basic spatstat features were used to transform to a ppp object, as well as visualize the spatial data on the appropriate window, which in this case, is the province of BC map. The elevation was also attached to the data, and basic elevation features were visualized on the window.
+
+```{r}
+lc <- read.csv("datasets/processed/lc.csv")
+plot(decimalLatitude ~ decimalLongitude,
+     pch = 16,
+     col = "#046C9A",
+     data = lc,
+     main = 'Canadian Lynx Locations within BC')
+```
+
 
 
 
