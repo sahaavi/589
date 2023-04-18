@@ -1,0 +1,46 @@
+---
+title: "Report"
+author: "Madison Greenough, Avishek Saha, Jonah Edmundson"
+date: "2023-04-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction (1 pg)
+
+The Canadian Lynx, known scientifically as the Lynx canadensis Kerr, are a marvelous species found within British Columbia. For this report, a spatial analysis of this species will be conducted. Given that the lynx are a part of the feline family, we hypothesize that they will habitate in forested areas, in small groups, with minimal movement. In other words, we expect that they will reside in an area long term without significant travelling or relocating. We also predict that they will reside in colder locations, so their presence may not be found in the warmer areas of BC, such as the southern interior.
+
+# Methods (unlimited)
+
+The dataset contains 13 variables and there are 178 rows, or entries. The variables include countryCode (str, which have all been filtered to CA for Canada), stateProvince (str, filtered for British Columbia), higherClassification (str, additional species information). month (int, month of occurrence), locality (str, region description), higherGeography (str, more broad region), sex (str, contains male, female, or NA), decimalLatitude (float), decimalLongitude (float), dateIdentified (date-time value, date of identification), coordinateUncertaintyInMeters (int, uncertainty value), footprintWKT (list of int, measurement values), and country (str, filtered to Canada).
+
+To begin, first moment descriptive statistics were visualized. Basic spatstat features were used to transform to a ppp object, as well as visualize the spatial data on the appropriate window, which in this case, is the province of BC map. The elevation was also attached to the data, and basic elevation features were visualized on the window.
+
+```{r}
+lc <- read.csv("datasets/processed/lc.csv")
+plot(decimalLatitude ~ decimalLongitude,
+     pch = 16,
+     col = "#046C9A",
+     data = lc,
+     main = 'Canadian Lynx Locations within BC')
+```
+
+
+
+
+# Results (unlimited)
+
+
+
+
+# Discussions (1 pg - brief summary of findings)
+
+
+
+
+# References
+
+GBIF.org (01 April 2023) GBIF Occurrence Download https://doi.org/10.15468/dl.zeymyk
