@@ -15,7 +15,9 @@ The Canadian Lynx, known scientifically as the Lynx canadensis Kerr, are a marve
 
 # Methods (unlimited)
 
-The dataset contains 13 variables and there are 178 rows, or entries. The variables included 
+The dataset contains 13 variables and there are 178 rows, or entries. The variables include countryCode (str, which have all been filtered to CA for Canada), stateProvince (str, filtered for British Columbia), higherClassification (str, additional species information). month (int, month of occurrence), locality (str, region description), higherGeography (str, more broad region), sex (str, contains male, female, or NA), decimalLatitude (float), decimalLongitude (float), dateIdentified (date-time value, date of identification), coordinateUncertaintyInMeters (int, uncertainty value), footprintWKT (list of int, measurement values), and country (str, filtered to Canada).
+
+
 
 
 # Results (unlimited)
