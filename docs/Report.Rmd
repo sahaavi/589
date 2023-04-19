@@ -25,7 +25,7 @@ lc <- read.csv("datasets/processed/lc.csv")
 ```
 ## First Moment Descriptives
 
-Below we will see a plot of Canada Lynx within BC.
+Below we will see a plot of Canadian Lynx within BC.
 
 ```{r}
 plot(decimalLatitude ~ decimalLongitude,
@@ -35,7 +35,7 @@ plot(decimalLatitude ~ decimalLongitude,
      main = 'Canadian Lynx Locations within BC')
 ```
 
-WE can visualize this by first showing the observation window, which is the province of BC.
+We can visualize this by first showing the observation window, which is the province of BC.
 
 ```{r}
 library(spatstat)
@@ -48,7 +48,7 @@ bc_window_owin <- as.owin(bc_window_sf)
 plot(bc_window_owin, main = "Observation Window")
 ```
 
-Now we can combine the two to show the observations within the window.
+Now we can overlay the two to show the observations within the window.
 
 ```{r}
 # Convert to a ppp object
@@ -56,13 +56,7 @@ lc_ppp <- ppp(x = lc$decimalLongitude, # X coordinates
               y = lc$decimalLatitude, # Y coordinates
               window = bc_window_owin, # Observation window
               )
-
-# Access the rejected points
-# attr(lc_ppp, "rejects")
-
-#  Remove rejected/out of window points
 lc_ppp <- as.ppp(lc_ppp)
-
 # Plot the ppp object
 plot(lc_ppp, 
      pch = 16,
@@ -71,15 +65,18 @@ plot(lc_ppp,
      main = "Marked Canada Lynx")
 ```
 
+### Intensity
+
+To determine the intensity of the Lynx across the region, we compute the value itself.
+
 ```{r}
-# summary(lc_ppp)
 intensity(lc_ppp)
 ```
 
-### Intensity
+We can take this a step further by splitting the window into quadrants to determine if the intensity is evenly allocated or not. 
 
 ```{r}
-#Split into a 3 by 3 quadrat and count points
+#Split into a 10 by 10 quadrat and count points
 Q <- quadratcount(lc_ppp,
                   nx = 10,
                   ny = 10)
@@ -103,9 +100,9 @@ plot(lc_ppp, pch = 16, cex = 0.6, cols = "white", add = T)
 plot(lc_ppp, pch = 16, cex = 0.5, cols = "black", add = T)
 ```
 
-From the above plot it can be seen that the assumption of homogeneity is not appropriate for this dataset as the lynx tend to be clustered in certain areas of the study site, whereas others have no lynx at all.
+From the plots above, it can be seen that the assumption of homogeneity is not appropriate for this dataset as the lynx tend to be clustered in certain areas of the study site, whereas others have no lynx at all.
 
-Quadrat test of homogeneity
+Next, we can perform a quadrat test of homogeneity to determine if, statistically, the assumption of homogeneity is met.
 
 ```{r}
 quadrat.test(Q)
