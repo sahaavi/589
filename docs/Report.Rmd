@@ -72,12 +72,6 @@ plot(lc_ppp,
 ```
 
 ```{r}
-#Get units
-unitname(lc_ppp)
-```
-
-
-```{r}
 # summary(lc_ppp)
 intensity(lc_ppp)
 ```
@@ -312,9 +306,9 @@ There appear to be more lynx than expected by random chance between 0 - 13500 as
 
 
 
-
 # Discussions (1 pg - brief summary of findings)
 
+Many of our hypotheses were found to be true. We found in the plots that the assumption of homogeneity is not appropriate for this Lynx dataset because the Lynx were clustered in certain areas of the observation window, whereas other locations had no Lynx at all.
 
 
 
