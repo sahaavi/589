@@ -1,6 +1,6 @@
 ---
 title: "Report"
-author: "Madison Greenough, Avishek Saha, Jonah Edmundson"
+author: "Avishek Saha, Jonah Edmundson, Madison Greenough"
 date: "2023-04-10"
 output: html_document
 ---
@@ -11,9 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction (1 pg)
 
-The Canadian Lynx, known scientifically as the Lynx canadensis Kerr, are a marvelous species found within British Columbia. For this report, a spatial analysis of this species will be conducted. Given that the lynx are a part of the feline family, we hypothesize that they will habitate in forested areas, in small groups, with minimal movement. In other words, we expect that they will reside in an area long term without significant travelling or relocating. We also predict that they will reside in colder locations, so their presence may not be found in the warmer areas of BC, such as the southern interior.
+The Canadian Lynx, known scientifically as the Lynx canadensis Kerr, are a marvelous species found within British Columbia. For this report, a spatial analysis of this species will be conducted. Given that the lynx are a part of the feline family, we hypothesize that they will habitate in forested areas, in small groups, with minimal movement. In other words, we expect that they will reside in an area long term without significant travelling or relocating. We also predict that they will reside in colder locations, so their presence may not be found in the warmer areas of BC, such as the southern interior. We expect that we cannot assume homogeneity for this specific species, as we expect the lynx to be found in clusters rather than evenly distributed across BC. 
 
-# Methods (unlimited)
+# Methods
 
 The dataset contains 13 variables and there are 178 rows, or entries. The variables include countryCode (str, which have all been filtered to CA for Canada), stateProvince (str, filtered for British Columbia), higherClassification (str, additional species information). month (int, month of occurrence), locality (str, region description), higherGeography (str, more broad region), sex (str, contains male, female, or NA), decimalLatitude (float), decimalLongitude (float), dateIdentified (date-time value, date of identification), coordinateUncertaintyInMeters (int, uncertainty value), footprintWKT (list of int, measurement values), and country (str, filtered to Canada).
 
@@ -21,6 +21,13 @@ To begin, first moment descriptive statistics were visualized. Basic spatstat fe
 
 ```{r}
 lc <- read.csv("datasets/processed/lc.csv")
+
+```
+## First Moment Descriptives
+
+Below we will see a plot of Canada Lynx within BC.
+
+```{r}
 plot(decimalLatitude ~ decimalLongitude,
      pch = 16,
      col = "#046C9A",
@@ -28,10 +35,280 @@ plot(decimalLatitude ~ decimalLongitude,
      main = 'Canadian Lynx Locations within BC')
 ```
 
+WE can visualize this by first showing the observation window, which is the province of BC.
+
+```{r}
+library(spatstat)
+library(sf)
+load("datasets/raw/BC_Covariates.Rda")
+# Create a SpatialPolygons object for the window
+bc_window_sf <- st_as_sf(DATA$Window)
+bc_window_owin <- as.owin(bc_window_sf)
+# Visualize the window
+plot(bc_window_owin, main = "Observation Window")
+```
+
+Now we can combine the two to show the observations within the window.
+
+```{r}
+# Convert to a ppp object
+lc_ppp <- ppp(x = lc$decimalLongitude, # X coordinates
+              y = lc$decimalLatitude, # Y coordinates
+              window = bc_window_owin, # Observation window
+              )
+
+# Access the rejected points
+# attr(lc_ppp, "rejects")
+
+#  Remove rejected/out of window points
+lc_ppp <- as.ppp(lc_ppp)
+
+# Plot the ppp object
+plot(lc_ppp, 
+     pch = 16,
+     cex = 0.5,
+     cols = "#046C9A",
+     main = "Marked Canada Lynx")
+```
+
+```{r}
+#Get units
+unitname(lc_ppp)
+```
+
+
+```{r}
+# summary(lc_ppp)
+intensity(lc_ppp)
+```
+
+### Intensity
+
+```{r}
+#Split into a 3 by 3 quadrat and count points
+Q <- quadratcount(lc_ppp,
+                  nx = 10,
+                  ny = 10)
+#Plot the output
+plot(lc_ppp,
+     pch = 16,
+     cex = 0.5,
+     cols = "#046C9A",
+     main = "Lynx locations")
+
+plot(Q, cex = 2, col = "red", add = T)
+```
+
+```{r}
+#Plot the output Note the use of image = TRUE
+plot(intensity(Q, image = T),
+     main = "Lynx intensity")
+
+plot(lc_ppp, pch = 16, cex = 0.6, cols = "white", add = T)
+
+plot(lc_ppp, pch = 16, cex = 0.5, cols = "black", add = T)
+```
+
+From the above plot it can be seen that the assumption of homogeneity is not appropriate for this dataset as the lynx tend to be clustered in certain areas of the study site, whereas others have no lynx at all.
+
+Quadrat test of homogeneity
+
+```{r}
+quadrat.test(Q)
+```
+
+The small p-value suggests that there is a significant deviation from homogeneity. So, the assumption of homogeneity is not met.
+
+### Relationships with covariates
+
+We are usually interested in determining whether the intensity depends on a covariate(s). One simple approach to check for a relationship between inhomogeneous $\lambda(u)$ and a spatial covariate $Z(u)$ is via quadrat counting.
+
+```{r}
+# Create 5 elevation classes with equal width
+elev_classes <- cut(DATA$Elevation, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+table(elev_classes[lc_ppp])
+```
+
+```{r}
+library(viridis)
+cols = terrain.colors(5)
+# Plot the elevation class image and overlay the lynx locations
+plot(elev_classes, col = cols, main = "Elevation Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.6, col = "black")
+```
+
+
+```{r}
+# Create 5 forest classes with equal width
+forest_classes <- cut(DATA$Forest, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+table(forest_classes[lc_ppp])
+```
+
+```{r}
+# Plot the forest class image and overlay the lynx locations
+plot(forest_classes, col = cols, main = "Forest Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.6, col = "black")
+```
+
+
+```{r}
+# Create 5 human footprint index classes with equal width
+hfi_classes <- cut(DATA$HFI, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+table(hfi_classes[lc_ppp])
+```
+
+```{r}
+# Plot the human footprint index class image and overlay the lynx locations
+plot(hfi_classes, main = "Footprint Index Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.5, col = "white")
+```
+
+
+```{r}
+# Create 5 dist water classes with equal width
+dist_water_classes <- cut(DATA$Dist_Water, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+table(dist_water_classes[lc_ppp])
+```
+
+```{r}
+# Plot the dist wanter class image and overlay the lynx locations
+plot(dist_water_classes, main = "Dist Water Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.5, col = "white")
+```
+
+Based on a visual inspection, it appears that the heterogeneity observed in the data may be associated with a preference for certain elevations and distances from water.
+
+More formally, in testing for relationships with covariates we are assuming that $λ$ is a function of $Z$, such that $$\lambda(u)=\rho(Z(u))$$
+
+A non-parametric estimate of $\rho$ can be obtained via kernel estimation, available via the rhohat() function.
+```{r}
+#Estimate Rho
+rho <- rhohat(lc_ppp, DATA$Elevation)
+```
+
+```{r}
+plot(rho, xlim = c(0,3000), main = "Rho vs elevation")
+```
+
+As the rho values varying at different elevations without and also the rho values are not close to 0 from 0 to 2000 elevation. So, there’s a non-linear relationship between elevation and lynx intensity.
+
+### Plot on BC Map
+
+```{r}
+library(raster)
+dmap1 <- density.ppp(lc_ppp, sigma = bw.ppl(lc_ppp),edge=T)
+r1 <- raster(dmap1)
+```
+
+```{r}
+library(leaflet)
+#make sure we have right CRS, which in this case is British National Grid
+
+bc_crs <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs"
+
+crs(r1) <- sp::CRS(bc_crs)
+```
+
+```{r}
+# create a colour palet
+pal <- colorNumeric(c("#41B6C4", "red"), values(r1),
+  na.color = "transparent")
+
+#and then make map!
+leaflet() %>% 
+  addTiles() %>%
+  addRasterImage(r1, colors = pal, opacity = 0.8) %>%
+  addLegend(pal = pal, values = values(r1),
+    title = "Canada Lynx in BC") 
+```
 
 
 
-# Results (unlimited)
+### Nearest neighbour distances
+
+```{r}
+col_pal <- colorRampPalette(c('orange', 'green'))
+# Calculate nearest neighbor distances
+nn_dist <- data.frame(nndist(lc_ppp))
+# Add distance to nearest neighbor mark
+marks(lc_ppp) <- nn_dist
+# Plot point pattern with distance to nearest neighbor mark
+plot(lc_ppp, main = "Seperation Distance", 
+     which.marks = NULL, 
+     cols = col_pal(nrow(nn_dist)), #The colours of the points
+     pch = 16)
+```
+
+
+## Second Moment Descriptives
+
+Following this, second moment descriptive statistics were visualized.
+
+### K-Function
+
+```{r}
+# Estimate the k- function
+k_lc <- Kest(lc_ppp)
+# visualise the results
+plot (k_lc, main = "Homogeneous K-Function", lwd = 2)
+```
+
+Here we can see that theoretical k-function $k_{pois}(r)$ deviates from other k-function corrections indicates clustering but these estimates assume homogeneity.
+
+```{r}
+# Bootstrapped CIs
+# rank = 1 means the max and min
+# values will be used for CI
+E_lc <- envelope(lc_ppp , Kest , rank = 1, nsim = 19, fix.n = T)
+# visualise the results
+plot (E_lc , main = "Homogeneous K-function")
+```
+
+Now we have evidence that suggests significant clustering, but these estimates assume homogeneity.
+
+Relaxing homogeneity assumption.
+
+```{r}
+#Estimate intensity
+lambda_lc <- density(lc_ppp, bw.ppl)
+Kinhom_lc <- Kinhom(lc_ppp, lambda_lc)
+# Estimate a strictly positive density
+lambda_lc_pos <- density(lc_ppp, sigma=bw.ppl, positive=TRUE)
+# Simulation envelope (with points drawn from the estimated intensity)
+E_lc_inhom <- envelope(lc_ppp, 
+                        Kinhom, 
+                        simulate = expression(rpoispp(lambda_lc_pos)), 
+                        correction="border", 
+                        rank = 1, 
+                        nsim = 19, 
+                        fix.n = TRUE)
+# visualise the results
+plot(E_lc_inhom, xlim = c(0,320000), main = "Inhomogeneous K-function", lwd = 2)
+```
+
+When correcting for inhomogeneity, the clustering is not as strong homogeneous k-function. Clustering appears to exist in and around 0 to 125000 units and 275000 to 300000 units.
+
+### Pair Correlation Function
+
+```{r}
+#Simulation envelope (with points drawn from the estimated intensity)
+pcf_lc_inhom <- envelope(lc_ppp, 
+                          pcfinhom, 
+                          simulate = expression(rpoispp(lambda_lc_pos)), 
+                          rank = 1, 
+                          nsim = 19)
+
+# visualise the results
+par(mfrow = c(1,2))
+plot(pcf_lc_inhom, main = "Inhomogeneous g-function")
+# Zoom in on range where significant deviations appear
+plot(pcf_lc_inhom, xlim = c(0,20000), main = "", lwd = 2)
+```
+
+There appear to be more lynx than expected by random chance between 0 - 13500 as $g(r) > 1$. Beyond that, the locations of lynx appear not to exhibit any significant correlations.
+
+
+# Results
 
 
 
