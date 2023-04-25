@@ -327,6 +327,7 @@ Many of our hypotheses were found to be true. We found in the plots that the ass
 
 We expected that lynx would be found at higher elevations, but looking at the plots, this was not the case. However, we believe the data is slightly biased because it only includes lynx sightings by humans. As lynx typically avoid humans, and areas where humans reside (as showin in the HFI plot), we believe that the majority of locations where the lynx are found have not been observed in this data. Humans are typically not in higher elevation areas, so they would not observe these areas as frequently as lower elevation areas, so the observations of the lynx are not truly representative.
 
+note - elevation was not predictive in any way in the model - the rho was being influenced by other things that were correlated
 
 # References
 
