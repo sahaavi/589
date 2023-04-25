@@ -1,5 +1,5 @@
 ---
-title: "Red-doing Lab 3"
+title: "Re-doing Lab 3"
 author: ":)"
 date: "`r format(Sys.time(), '%d %B, %Y %H:%M:%OS')`"
 output:
@@ -26,12 +26,31 @@ Note: You will need to load the `maptools` package and make use of the `as.owin(
 
 ```{r}
 # 1
+#quiet function
+quiet <- function(x) { 
+  sink(tempfile()) 
+  on.exit(sink()) 
+  invisible(force(x)) 
+}
+
+#importing dataset
+lc = read.csv("../datasets/processed/lc.csv")
+
+#importing window
 suppressMessages(library(spatstat))
+suppressMessages(library(sf))
 suppressMessages(library(maptools))
-load('./BC_Parks.Rda')
-parks_ppp = ppp(x = DATA$Parks$X, # X coordinates
-                    y = DATA$Parks$Y, # Y coordinates
-                    window = as.owin(DATA$Window)) 
+load("../datasets/raw/BC_Covariates.Rda")
+bc_window_sf = st_as_sf(DATA$Window)
+bc_window_owin = as.owin(bc_window_sf)
+
+#converting to a ppp
+lc_ppp = ppp(x = lc$decimalLongitude, 
+              y = lc$decimalLatitude, 
+              window = bc_window_owin, 
+              )
+
+plot(lc_ppp, pch = 16, cols = "#046C9A", cex = 0.6)
 ```
 
 ## Exercise 2 -- 4 points
@@ -45,9 +64,9 @@ Note: Estimating rho can be slow ($\sim$ 1-2 min). Be sure to leave enough time 
 ```{r, cache=TRUE}
 # 1
 elev = DATA$Elevation
-rho_elev = rhohat(parks_ppp, elev)
+rho_elev = rhohat(lc_ppp, elev)
 forest = DATA$Forest
-rho_forest = rhohat(parks_ppp, forest)
+rho_forest = rhohat(lc_ppp, forest)
 par(mfrow = c(1,2))
 plot(rho_elev,
      main = "",
@@ -57,20 +76,33 @@ plot(rho_forest,
      main = "",
      xlab = "Forest Cover (%)")
 par(mfrow = c(1,1))
-
-# 2
-cor.im(elev, forest, use = 'complete.obs')
-#this correlation is quite weak, so we can continue without worry
-
-# 3
-#see below
 ```
 
-Reasonable model:
+HFI is based on: population density, land transformation, human access, and power infrastructure. 
 
+```{r, cache=TRUE}
+# 1
+hfi = DATA$HFI
+rho_hfi = rhohat(lc_ppp, hfi)
+distw = DATA$Dist_Water
+rho_distw = rhohat(lc_ppp, distw)
+par(mfrow = c(1,2))
+plot(rho_hfi,
+     main = "",
+     xlab = "Human Footprint Index")
+plot(rho_distw,
+     main = "",
+     xlab = "Distance to Water (m)")
+par(mfrow = c(1,1))
+
+#correlation
+cor.im(elev, forest, hfi, distw,  use = 'complete.obs')
+```
+
+<!--
 \[\lambda_{parks}(u) = e^{\beta_0 + \beta_1 \textrm{elevation(u)} + \beta_2 \textrm{elevation(u)}^2 + \beta_3 \textrm{forest(u)} + \beta_4 \textrm{forest(u)}^2}\]
+--> 
 
-Both of the elevation and forest coverage rho plots show non-linear relationships. Without getting too complex too fast, having square terms for each variable is a good starting place. It seems as though less parks occur at medium elevations and more at lower elevations; also, more parks occur at medium forest coverage. 
 
 
 ## Exercise 3 -- 4 points
@@ -82,33 +114,51 @@ Both of the elevation and forest coverage rho plots show non-linear relationship
 * Use this equation to estimate the intensity of parks at 500m elevation and 50% forest cover.
 
 ```{r}
+# 0
+#mean centering and scaling the elevation and distance to water variables 
+mu <- mean(DATA$Elevation)
+stdev <- sd(DATA$Elevation)
+Elevation_scaled <- eval.im((elev - mu)/stdev, DATA)
+mu <- mean(DATA$Dist_Water)
+stdev <- sd(DATA$Dist_Water)
+Dist_Water_scaled <- eval.im((distw - mu)/stdev, DATA)
+
 # 1
-fit1 = ppm(parks_ppp ~ elev + I(elev^2) + forest + I(forest^2))
+fit1 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + forest + I(forest^2) + hfi + I(hfi^2) + Dist_Water_scaled + I(Dist_Water_scaled^2))
 fit1
 
-# 2 
-fit2 = ppm(parks_ppp ~ 1)
+# 1.5
+fit2 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + hfi + I(hfi^2))
 fit2
 
+# 2 
+fit_intercept = ppm(lc_ppp ~ 1)
+fit_intercept
+
 # 3
-AIC(fit1); AIC(fit2)
+AIC(fit1); AIC(fit2); AIC(fit_intercept)
 AIC(fit2) - AIC(fit1) #delta AIC
 anova(fit2, fit1, test = "LRT") #LRT
 #the positive delta AIC and the small p-value from the LRT both point 
 #to the more complex model being more parsimonious (better fit and 
 #worth it)
-
-# 4
-#see below
-
-# 5 
-exp(-20.72331-0.003934276*500+0.000001391814*500^2+0.04801032*50-0.0004388615*50^2)
 ```
 
-Model equation:
+```{r, cache=TRUE, warning=FALSE}
+#lurking variable plot
+lurking(fit2, elev, type = "raw", cumulative = F, envelope = T, xlab = "Elevation (m)" )
+```
 
+
+```{r}
+#GAM
+
+```
+
+
+<!--
 \[\lambda_{parks}(u) = e^{-20.72-0.00393*\textrm{elevation(u)}+0.00000139*\textrm{elevation(u)}^2+0.048*\textrm{forest(u)}-0.000439*\textrm{forest(u)}^2}\]
-
+-->
 
 ## Exercise 4 -- 4 points
 
@@ -118,36 +168,41 @@ Model equation:
 
 ```{r}
 # 1
-plot(fit1,
-     se = FALSE,
-     superimpose = FALSE, 
-     log = TRUE, n=80)
-
-plot(parks_ppp,
-     pch = 16,
-     cex = 0.6,
-     cols = "white",
-     add = TRUE)
-plot(parks_ppp,
-     pch = 16,
-     cex = 0.5,
-     cols = "black",
-     add = TRUE)
-
-# 2
-elev_effect = effectfun(fit1, "elev", forest = median(forest), se.fit = T)
-forest_effect = effectfun(fit1, 'forest', elev = median(elev), se.fit = T)
-par(mfrow = c(1,2))
-plot(elev_effect,
-     legend = FALSE,
-     main = "Elevational effect at median \n forest coverage")
-plot(forest_effect,
-     legend = FALSE,
-     main = "Effect of forest coverage at \n median elevation")
-par(mfrow = c(1,1))
+# plot(fit1,
+#      se = FALSE,
+#      superimpose = FALSE, 
+#      log = TRUE, n=80)
+# 
+# plot(parks_ppp,
+#      pch = 16,
+#      cex = 0.6,
+#      cols = "white",
+#      add = TRUE)
+# plot(parks_ppp,
+#      pch = 16,
+#      cex = 0.5,
+#      cols = "black",
+#      add = TRUE)
+# 
+# # 2
+# elev_effect = effectfun(fit1, "elev", forest = median(forest), se.fit = T)
+# forest_effect = effectfun(fit1, 'forest', elev = median(elev), se.fit = T)
+# par(mfrow = c(1,2))
+# plot(elev_effect,
+#      legend = FALSE,
+#      main = "Elevational effect at median \n forest coverage")
+# plot(forest_effect,
+#      legend = FALSE,
+#      main = "Effect of forest coverage at \n median elevation")
+# par(mfrow = c(1,1))
 
 # 3
 ```
+
+```{r}
+#diagnose.ppm(fit1)
+```
+
 
 The model predictions are mediocre. It does alright on the island, but misses a lot of the density on the lower part of BC, and overpredicts in the top right corner. There is definitely room for improvement. 
 
@@ -158,7 +213,7 @@ The model predictions are mediocre. It does alright on the island, but misses a 
 
 ```{r}
 # 1
-quadrat.test(fit1, nx = 2, ny = 4)
+#quadrat.test(fit1, nx = 2, ny = 4)
 #The small p value tells us that there’s a significant deviation 
 #from our model’s predictions.
 ```
@@ -171,7 +226,7 @@ quadrat.test(fit1, nx = 2, ny = 4)
 
 ```{r}
 # 1
-plot(residuals(fit1), cols = "transparent")
+#plot(residuals(fit1), cols = "transparent")
 ```
 
 If the model is performing well, there should be no trend in the residuals. Although it is difficult to tell based on this plot, there is a trend in the residuals. There are larger residuals nearer the coast than there is inland. Perhaps 'distance to the coast' should be included as a covariate to account for this. 
@@ -185,20 +240,20 @@ If the model is performing well, there should be no trend in the residuals. Alth
 
 ```{r}
 # 1
-par_res_elev = suppressWarnings(parres(fit1, "elev"))
-par_res_forest = suppressWarnings(parres(fit1, "forest"))
-par(mfrow = c(1,2))
-plot(par_res_elev,
-     legend = FALSE,
-     lwd = 2,
-     main = "",
-     xlab = "Elevation (m)")
-plot(par_res_forest,
-     legend = FALSE,
-     lwd = 2,
-     main = "",
-     xlab = "Forest Coverage (%)")
-par(mfrow = c(1,1))
+# par_res_elev = suppressWarnings(parres(fit1, "elev"))
+# par_res_forest = suppressWarnings(parres(fit1, "forest"))
+# par(mfrow = c(1,2))
+# plot(par_res_elev,
+#      legend = FALSE,
+#      lwd = 2,
+#      main = "",
+#      xlab = "Elevation (m)")
+# plot(par_res_forest,
+#      legend = FALSE,
+#      lwd = 2,
+#      main = "",
+#      xlab = "Forest Coverage (%)")
+# par(mfrow = c(1,1))
 
 # 2
 #The terms actually seem to be doing a pretty good job. However, 
@@ -216,10 +271,4 @@ par(mfrow = c(1,1))
 ## Exercise 7 -- 1 points
 
 * Based on these analyses, what have you learned about the spatial distribution of parks in BC?  -- 1 point(s)
-
-I have learned that:
-
-* Elevation and forest coverage are both significantly predictive of the number of parks in BC
-* The relationship between elevation/forest coverage and \# of parks in BC is non-linear
-* elevation and forest coverage in BC are slightly negatively correlated
-* other covariates (perhaps 'distance to ocean'?) are needed in order to further improve model accuracy 
+ 
