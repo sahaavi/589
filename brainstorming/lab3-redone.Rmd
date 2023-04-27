@@ -113,7 +113,7 @@ cor.im(elev, forest, hfi, distw,  use = 'complete.obs')
 * Write down the equation for the selected model. -- 0.5 point(s)
 * Use this equation to estimate the intensity of parks at 500m elevation and 50% forest cover.
 
-```{r}
+```{r, cache=TRUE}
 # 0
 #mean centering and scaling the elevation and distance to water variables 
 mu <- mean(DATA$Elevation)
@@ -142,6 +142,21 @@ anova(fit2, fit1, test = "LRT") #LRT
 #the positive delta AIC and the small p-value from the LRT both point 
 #to the more complex model being more parsimonious (better fit and 
 #worth it)
+
+#plotting ppm prediction
+plot(fit2,
+     se = FALSE,
+     superimpose = FALSE)
+plot(lc_ppp,
+     pch = 16,
+     cex = 0.6,
+     cols = "white",
+     add = TRUE)
+plot(lc_ppp,
+     pch = 16,
+     cex = 0.5,
+     cols = "black",
+     add = TRUE)
 ```
 
 ```{r, cache=TRUE, warning=FALSE}
@@ -150,9 +165,35 @@ lurking(fit2, elev, type = "raw", cumulative = F, envelope = T, xlab = "Elevatio
 ```
 
 
-```{r}
-#GAM
+```{r, cache=TRUE, warning=FALSE}
+###############################
+#### GAM
+###############################
 
+library(splines)
+fit_smooth = suppressWarnings(ppm(lc_ppp ~ bs(Elevation_scaled,7) + bs(Dist_Water_scaled, 8) + 
+                   bs(forest, 8) + bs(hfi, 8), use.gam = TRUE))
+fit_smooth
+
+#checking AIC
+AIC(fit2); AIC(fit_smooth)
+AIC(fit2) - AIC(fit_smooth)
+anova(fit2, fit_smooth, test = "LRT")
+#Plot the model predictions
+plot(fit_smooth,
+     se = FALSE,
+     superimpose = FALSE,
+     main = "Lynx GAM")
+plot(lc_ppp,
+     pch = 16,
+     cex = 0.6,
+     cols = "white",
+     add = TRUE)
+plot(lc_ppp,
+     pch = 16,
+     cex = 0.5,
+     cols = "black",
+     add = TRUE)
 ```
 
 
@@ -167,44 +208,8 @@ lurking(fit2, elev, type = "raw", cumulative = F, envelope = T, xlab = "Elevatio
 * Visually, do you think the model predictions are a good match to the data?  -- 1 point(s)
 
 ```{r}
-# 1
-# plot(fit1,
-#      se = FALSE,
-#      superimpose = FALSE, 
-#      log = TRUE, n=80)
-# 
-# plot(parks_ppp,
-#      pch = 16,
-#      cex = 0.6,
-#      cols = "white",
-#      add = TRUE)
-# plot(parks_ppp,
-#      pch = 16,
-#      cex = 0.5,
-#      cols = "black",
-#      add = TRUE)
-# 
-# # 2
-# elev_effect = effectfun(fit1, "elev", forest = median(forest), se.fit = T)
-# forest_effect = effectfun(fit1, 'forest', elev = median(elev), se.fit = T)
-# par(mfrow = c(1,2))
-# plot(elev_effect,
-#      legend = FALSE,
-#      main = "Elevational effect at median \n forest coverage")
-# plot(forest_effect,
-#      legend = FALSE,
-#      main = "Effect of forest coverage at \n median elevation")
-# par(mfrow = c(1,1))
-
-# 3
+#See above
 ```
-
-```{r}
-#diagnose.ppm(fit1)
-```
-
-
-The model predictions are mediocre. It does alright on the island, but misses a lot of the density on the lower part of BC, and overpredicts in the top right corner. There is definitely room for improvement. 
 
 
 ## Exercise 5 -- 1 point
@@ -213,7 +218,9 @@ The model predictions are mediocre. It does alright on the island, but misses a 
 
 ```{r}
 # 1
-#quadrat.test(fit1, nx = 2, ny = 4)
+library(splines)
+quadrat.test(fit2, nx = 2, ny = 4)
+quadrat.test(fit_smooth, nx = 2, ny = 4) #doesnt run
 #The small p value tells us that there’s a significant deviation 
 #from our model’s predictions.
 ```
@@ -224,12 +231,16 @@ The model predictions are mediocre. It does alright on the island, but misses a 
 * Calculate and plot the model residuals.  -- 1 point(s)
 * Based on the residuals, do you think the model performing well?  -- 1 point(s)
 
-```{r}
+```{r, cache=TRUE, warning=FALSE}
 # 1
-#plot(residuals(fit1), cols = "transparent")
+#plot(residuals(fit2), cols = "transparent")
+#plot(residuals(fit_smooth), cols = "transparent")
+#residuals function doesnt run
+#using diagnose.ppm instead:
+diagnose.ppm(fit2)
+diagnose.ppm(fit_smooth)
 ```
 
-If the model is performing well, there should be no trend in the residuals. Although it is difficult to tell based on this plot, there is a trend in the residuals. There are larger residuals nearer the coast than there is inland. Perhaps 'distance to the coast' should be included as a covariate to account for this. 
 
 
 ## Exercise 6 -- 3 points
@@ -238,37 +249,103 @@ If the model is performing well, there should be no trend in the residuals. Alth
 * Do you think that the terms are accurately capturing trends in the data?  -- 1 point(s)
 * Do you have enough information to further refine the model and improve it's accuracy?  -- 1 point(s)
 
-```{r}
-# 1
-# par_res_elev = suppressWarnings(parres(fit1, "elev"))
-# par_res_forest = suppressWarnings(parres(fit1, "forest"))
-# par(mfrow = c(1,2))
-# plot(par_res_elev,
-#      legend = FALSE,
-#      lwd = 2,
-#      main = "",
-#      xlab = "Elevation (m)")
-# plot(par_res_forest,
-#      legend = FALSE,
-#      lwd = 2,
-#      main = "",
-#      xlab = "Forest Coverage (%)")
-# par(mfrow = c(1,1))
+```{r, cache=TRUE, warning=FALSE}
+#PPM
+par_res_elev_ppm = parres(fit2, "Elevation_scaled")
+par_res_hfi_ppm = parres(fit2, 'hfi')
+par(mfrow = c(1,2))
+plot(par_res_elev_ppm,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Elevation Scaled (m)")
+plot(par_res_hfi_ppm,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "HFI")
+par(mfrow = c(1,1))
 
-# 2
-#The terms actually seem to be doing a pretty good job. However, 
-#there are certainly some bumps and curves that are not being modelled. 
-#That being said, there is certainly room for improvement. 
+#GAM
+library(splines)
+par_res_elev = parres(fit_smooth, "Elevation_scaled")
+par_res_distw = parres(fit_smooth, "Dist_Water_scaled")
+par_res_hfi = parres(fit_smooth, 'hfi')
+par_res_forest = parres(fit_smooth, 'forest')
 
-# 3
-#No, I don't think so. The only thing I could do would be to increase 
-#the order of the polynomials, but as mentioned in lab, this is unstable. 
-#I think another relevant covariate would be needed in order to improve
-#modelling accuracy. 
+#Side by side plotting
+par(mfrow = c(1,2))
+plot(par_res_elev,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Elevation Scaled (m)")
+plot(par_res_distw,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Distance to Water Scaled (m)")
+plot(par_res_hfi,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "HFI")
+plot(par_res_forest,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Forest Coverage (%)")
+par(mfrow = c(1,1)) 
 ```
 
 
-## Exercise 7 -- 1 points
+## Model Validation
 
-* Based on these analyses, what have you learned about the spatial distribution of parks in BC?  -- 1 point(s)
+### Intensity of a fitted point process model as a function of one of its covariates
+
+```{r, cache=TRUE}
+## For PPM fit 
+#Elevational effect on lambda at mean hfi
+elev_effect = effectfun(fit2, "Elevation_scaled", hfi = mean(hfi), se.fit = T)
+
+#HFI effect on lambda at mean elevation
+hfi_effect = effectfun(fit2, "hfi", Elevation_scaled = mean(Elevation_scaled), se.fit = T)
+
+#Side by side plotting
+par(mfrow = c(1,2))
+#Plot the elevation effect 
+plot(elev_effect,
+     legend = FALSE,
+     main = "Elevational effect at mean HFI")
+
+#Plot the slope effect 
+plot(hfi_effect,
+     legend = FALSE,
+     main = "Effect of HFI at mean elevation")
+par(mfrow = c(1,1))
+```
+
+
+### Relative Intensity
+
+```{r, cache=TRUE, eval=FALSE}
+#Calculate the relative intensity as a function of elevation
+rh_elev = rhohat(na.omit(fit2), na.omit(Elevation_scaled))
+
+#Calculate the relative intensity as a function of hfi
+rh_hfi = rhohat(na.omit(fit2), na.omit(hfi))
+
+#Side by side plotting
+par(mfrow = c(1,2))
+plot(rh_elev,
+     legend = FALSE,
+     main = "",
+     xlab = "Elevation scaled (m)")
+plot(rh_hfi,
+     legend = FALSE,
+     main = "",
+     xlab = "HFI")
+par(mfrow = c(1,1))
+```
+
  
