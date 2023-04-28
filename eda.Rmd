@@ -23,7 +23,10 @@ Plot Canada Lynx within BC
 plot(decimalLatitude ~ decimalLongitude,
      pch = 16,
      col = "#046C9A",
-     data = lc)
+     data = lc,
+     xlab = "Longtitude",
+     ylab = "Latitude",
+     main = "Lynx Locations")
 ```
 
 Visualizing the observation window
@@ -78,8 +81,8 @@ intensity(lc_ppp)
 ```{r}
 #Split into a 3 by 3 quadrat and count points
 Q <- quadratcount(lc_ppp,
-                  nx = 10,
-                  ny = 10)
+                  nx = 2,
+                  ny = 4)
 #Plot the output
 plot(lc_ppp,
      pch = 16,
@@ -100,7 +103,7 @@ plot(lc_ppp, pch = 16, cex = 0.6, cols = "white", add = T)
 plot(lc_ppp, pch = 16, cex = 0.5, cols = "black", add = T)
 ```
 
-From the above plot it can be seen that the assumption of homogeneity is not appropriate for this dataset as the lynx tend to be clustered in certain areas of the study site, whereas others have no lynx at all.
+From the above plot it can be seen that the assumption of homogeneity is not appropriate for this dataset as the lynx tend to be clustered in certain areas of the study site, whereas others have no lynx at all. We are further doing quadrat test to verify the inhomogeneity.
 
 Quadrat test of homogeneity
 
@@ -172,16 +175,56 @@ Based on a visual inspection, it appears that the heterogeneity observed in the 
 More formally, in testing for relationships with covariates we are assuming that $λ$ is a function of $Z$, such that $$\lambda(u)=\rho(Z(u))$$
 
 A non-parametric estimate of $\rho$ can be obtained via kernel estimation, available via the rhohat() function.
+
 ```{r}
 #Estimate Rho
 rho <- rhohat(lc_ppp, DATA$Elevation)
 ```
 
 ```{r}
-plot(rho, xlim = c(0,3000), main = "Rho vs elevation")
+plot(rho,
+     xlim = c(0,3000),
+     xlab = "Elevation",
+     main = "Rho vs elevation")
 ```
 
-As the rho values varying at different elevations without and also the rho values are not close to 0 from 0 to 2000 elevation. So, there’s a non-linear relationship between elevation and lynx intensity.
+There’s a non-linear relationship between elevation and lynx intensity. Majority of the lynx are at low elevations than would be expected by chance, fewer parks at intermediate elevations and no parks at high elevations.
+
+```{r}
+#Estimate Rho
+rho_forest <- rhohat(lc_ppp, DATA$Forest)
+```
+
+```{r}
+plot(rho_forest,
+     #xlim = c(0,3000),
+     xlab = "Forest",
+     main = "Rho vs Forest")
+```
+
+```{r}
+#Estimate Rho
+rho_water <- rhohat(lc_ppp, DATA$Dist_Water)
+```
+
+```{r}
+plot(rho_water,
+     xlim = c(0,15000),
+     xlab = "Water Dist",
+     main = "Rho vs Water Dist")
+```
+
+```{r}
+rho_hfi <- rhohat(lc_ppp, DATA$HFI)
+```
+
+```{r}
+plot(rho_hfi,
+     #xlim = c(0,3000),
+     xlab = "Human Footprint Index",
+     main = "Rho vs HFI")
+```
+
 
 ### Plot on BC Map
 
@@ -274,7 +317,7 @@ E_lc_inhom <- envelope(lc_ppp,
 plot(E_lc_inhom, xlim = c(0,320000), main = "Inhomogeneous K-function", lwd = 2)
 ```
 
-When correcting for inhomogeneity, the clustering is not as strong homogeneous k-function. Clustering appears to exist in and around 0 to 125000 units and 275000 to 300000 units.
+When correcting for inhomogeneity, the clustering is not as strong homogeneous k-function. Clustering appears to exist in and around 0 to 125000 units.
 
 ### Pair Correlation Function
 
@@ -295,23 +338,44 @@ plot(pcf_lc_inhom, xlim = c(0,20000), main = "", lwd = 2)
 
 There appear to be more lynx than expected by random chance between 0 - 13500 as $g(r) > 1$. Beyond that, the locations of lynx appear not to exhibit any significant correlations.
 
+### Collinearity
+
+Collinearity among elevation, forest, human footprint index and water distance.
+```{r}
+cor.im(DATA$Elevation, DATA$Forest, DATA$HFI, DATA$Dist_Water, use = "complete.obs")
+```
+
+The correlation coefficients are relatively weak. We can proceed without too much worry.
 
 ## Fit Model
 
-# ```{r}
-# DATA$Species <- lc
-# ```
-# 
-# ```{r}
-# # create a factor variable defining point types based on the "Species" variable
-# type_var <- factor(lc_ppp$marks)
-# 
-# # create a multitype point pattern object
-# lcm_ppp <- ppp(x = lc_ppp$x, y = lc_ppp$y, marks = list(type = type_var))
-# 
-# # fit a multitype point process model to the data
-# fit <- ppm(lcm_ppp ~ Elevation, data = DATA)
-# ```
+```{r}
+# mean centering and scaling the elevation and distance to water variables
+mu <- mean(DATA$Elevation)
+stdev <- sd(DATA$Elevation)
+DATA$Elevation_scaled <- eval.im((Elevation - mu)/stdev, DATA)
+mu <- mean(DATA$Dist_Water)
+stdev <- sd(DATA$Dist_Water)
+DATA$Dist_Water_scaled <- eval.im((Dist_Water - mu)/stdev, DATA)
+```
 
 
+```{r}
+fit_1 <- ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + Forest + I(Forest^2) + Dist_Water_scaled + I(Dist_Water_scaled^2) + HFI, data = na.omit(DATA))
+fit_1
+```
+
+```{r}
+quadrat.test(fit_1, nx = 2, ny =4)
+```
+
+Significant deviation from model's predictions.
+
+```{r}
+# Calculate the residuals
+res <- residuals(fit_1)
+plot(res,
+     cols = "transparent",
+     main = "Model Residuals")
+```
 
