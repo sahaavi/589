@@ -161,7 +161,7 @@ plot(lc_ppp,
 
 ```{r, cache=TRUE, warning=FALSE}
 #lurking variable plot
-lurking(fit2, elev, type = "raw", cumulative = F, envelope = T, xlab = "Elevation (m)" )
+lurking(fit2, forest, type = "raw", cumulative = F, envelope = T, xlab = "Forest Coverage (%)" )
 ```
 
 
