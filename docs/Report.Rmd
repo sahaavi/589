@@ -26,13 +26,248 @@ The dataset contains 13 variables and there are 178 rows, or entries. The variab
 ## Workflow 
 
 To begin, first moment descriptive statistics were visualized. Basic `spatstat` features were used to transform to a `ppp` object, as well as visualize the spatial data on the appropriate window, which in this case, is the province of BC map. The elevation was also attached to the data, and basic elevation features were visualized on the window.   
-After that we examined the intensity of lynx locations and assessed homogeneity through a quadrat test, which revealed that the distribution was not homogenous. We then used inhomogeneous k-function and pair correlation function to investigate the correlation of lynx locations. Then we fitted models and selected them based on AIC scores and likelihood ratio test. Furthermore, we performed a quadrat test to determine if the selected model accurately predicts the data or if there are deviations.  Additionally, we explored the potential benefits of adding other covariates to our models. To assess the efficacy of our models, partial residual plots were used to identify whether our model capturing the data well or not.
+After that we examined the intensity of lynx locations and assessed homogeneity through a quadrat test, which revealed that the distribution was not homogeneous. We then used inhomogeneous k-function and pair correlation function to investigate the correlation of lynx locations. Then we fitted several models and selected them based on AIC scores and likelihood ratio test. Furthermore, we performed a quadrat test to determine if the selected model accurately predicts the data or if there are deviations.  Additionally, we explored the potential benefits of adding other covariates to our models. To assess the efficacy of our models, partial residual plots were used to identify whether our model capturing the data well or not.
 
 
 ## Code
 
 ```{r, eval=FALSE, echo=TRUE}
-#
+lc <- read.csv("../datasets/processed/lc.csv")
+suppressMessages(library(spatstat))
+suppressMessages(library(sf))
+load("../datasets/raw/BC_Covariates.Rda")
+bc_window_sf <- st_as_sf(DATA$Window)
+bc_window_owin <- as.owin(bc_window_sf)
+# Convert to a ppp object
+lc_ppp <- ppp(x = lc$decimalLongitude, # X coordinates
+              y = lc$decimalLatitude, # Y coordinates
+              window = bc_window_owin, # Observation window
+              )
+lc_ppp <- as.ppp(lc_ppp)
+# Plot the ppp object
+plot(lc_ppp, 
+     pch = 16,
+     cex = 0.5,
+     cols = "#046C9A",
+     main = "Marked Canada Lynx")
+intensity(lc_ppp)
+Q <- quadratcount(lc_ppp,
+                  nx = 2,
+                  ny = 4)
+plot(intensity(Q, image = T),
+     main = "Lynx intensity")
+plot(lc_ppp, pch = 16, cex = 0.6, cols = "white", add = T)
+plot(lc_ppp, pch = 16, cex = 0.5, cols = "black", add = T)
+#plotting on BC map
+library(raster)
+dmap1 <- density.ppp(lc_ppp, sigma = bw.ppl(lc_ppp),edge=T)
+r1 <- raster(dmap1)
+library(leaflet)
+#make sure we have right CRS, which in this case is British National Grid
+bc_crs <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs"
+crs(r1) <- sp::CRS(bc_crs)
+# create a colour palet
+pal <- colorNumeric(c("#41B6C4", "red"), values(r1),
+  na.color = "transparent")
+#and then make map
+leaflet() %>% 
+  addTiles() %>%
+  addRasterImage(r1, colors = pal, opacity = 0.8) %>%
+  addLegend(pal = pal, values = values(r1),
+    title = "Canada Lynx in BC") 
+quadrat.test(Q)
+col_pal <- colorRampPalette(c('orange', 'green'))
+# Calculate nearest neighbor distances
+nn_dist <- data.frame(nndist(lc_ppp))
+# Add distance to nearest neighbor mark
+marks(lc_ppp) <- nn_dist
+# Plot point pattern with distance to nearest neighbor mark
+plot(lc_ppp, main = "Seperation Distance", 
+     which.marks = NULL, 
+     cols = col_pal(nrow(nn_dist)), #The colours of the points
+     pch = 16)
+# Estimate the k- function
+k_lc <- Kest(lc_ppp)
+# visualise the results
+plot (k_lc, main = "Homogeneous K-Function", lwd = 2)
+# Bootstrapped CIs
+# rank = 1 means the max and min
+# values will be used for CI
+E_lc <- envelope(lc_ppp , Kest , rank = 1, nsim = 19, fix.n = T)
+# visualise the results
+plot (E_lc , main = "Homogeneous K-function")
+#Estimate intensity
+lambda_lc <- density(lc_ppp, bw.ppl)
+Kinhom_lc <- Kinhom(lc_ppp, lambda_lc)
+# Estimate a strictly positive density
+lambda_lc_pos <- density(lc_ppp, sigma=bw.ppl, positive=TRUE)
+# Simulation envelope (with points drawn from the estimated intensity)
+E_lc_inhom <- envelope(lc_ppp, 
+                        Kinhom, 
+                        simulate = expression(rpoispp(lambda_lc_pos)), 
+                        correction="border", 
+                        rank = 1, 
+                        nsim = 19, 
+                        fix.n = TRUE)
+# visualise the results
+plot(E_lc_inhom, xlim = c(0,320000), main = "Inhomogeneous K-function", lwd = 2)
+#Simulation envelope (with points drawn from the estimated intensity)
+pcf_lc_inhom <- envelope(lc_ppp, 
+                          pcfinhom, 
+                          simulate = expression(rpoispp(lambda_lc_pos)), 
+                          rank = 1, 
+                          nsim = 19)
+
+# visualise the results
+par(mfrow = c(1,2))
+plot(pcf_lc_inhom, main = "Inhomogeneous g-function")
+# Zoom in on range where significant deviations appear
+plot(pcf_lc_inhom, xlim = c(0,20000), main = "", lwd = 2)
+library(viridis)
+library(viridisLite)
+cols = terrain.colors(5)
+# Create 5 elevation classes with equal width
+elev_classes <- cut(DATA$Elevation, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+#table(elev_classes[lc_ppp])
+# Plot the elevation class image and overlay the lynx locations
+# plot(elev_classes, col = cols, main = "Elevation Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+# points(lc_ppp, pch = 16, cex = 0.6, col = "black")
+
+# Create 5 forest classes with equal width
+forest_classes <- cut(DATA$Forest, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+#table(forest_classes[lc_ppp])
+# plot(forest_classes, col = cols, main = "Forest Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+# points(lc_ppp, pch = 16, cex = 0.6, col = "black")
+
+# Create 5 human footprint index classes with equal width
+hfi_classes <- cut(DATA$HFI, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+#table(hfi_classes[lc_ppp])
+# plot(hfi_classes, main = "Footprint Index Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+# points(lc_ppp, pch = 16, cex = 0.5, col = "white")
+
+# Create 5 dist water classes with equal width
+dist_water_classes <- cut(DATA$Dist_Water, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+#table(dist_water_classes[lc_ppp])
+# plot(dist_water_classes, main = "Dist Water Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+# points(lc_ppp, pch = 16, cex = 0.5, col = "white")
+
+#plot all at once
+par(mfrow = c(2,2))
+par(mar=c(0,0,2,1))
+#1
+plot(elev_classes, col = cols, main = "Elevation Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.6, col = "black")
+#2
+plot(forest_classes, col = cols, main = "Forest Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.6, col = "black")
+#3
+plot(hfi_classes, main = "Footprint Index Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.5, col = "white")
+#4
+plot(dist_water_classes, main = "Dist Water Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+points(lc_ppp, pch = 16, cex = 0.5, col = "white")
+par(mfrow = c(1,1))
+#Estimate Rho
+hfi = DATA$HFI
+rho_hfi = rhohat(lc_ppp, hfi)
+distw = DATA$Dist_Water
+rho_distw = rhohat(lc_ppp, distw)
+elev = DATA$Elevation
+rho_elev = rhohat(lc_ppp, elev)
+forest = DATA$Forest
+rho_forest = rhohat(lc_ppp, forest)
+
+par(mfrow = c(2,2))
+par(mar=c(0,0,2,1))
+plot(rho_elev,
+     main = "",
+     xlab = "Elevation (m)", 
+     xlim=c(0, 3600))
+plot(rho_forest,
+     main = "",
+     xlab = "Forest Cover (%)")
+plot(rho_hfi,
+     main = "",
+     xlab = "Human Footprint Index")
+plot(rho_distw,
+     main = "",
+     xlab = "Distance to Water (m)")
+par(mfrow = c(1,1))
+#correlation
+cor.im(elev, forest, hfi, distw,  use = 'complete.obs')
+# Convert to a ppp object
+lc_ppp <- ppp(x = lc$decimalLongitude, # X coordinates
+              y = lc$decimalLatitude, # Y coordinates
+              window = bc_window_owin, # Observation window
+              )
+lc_ppp <- as.ppp(lc_ppp)
+
+mu <- mean(DATA$Elevation)
+stdev <- sd(DATA$Elevation)
+Elevation_scaled <- eval.im((elev - mu)/stdev, DATA)
+mu <- mean(DATA$Dist_Water)
+stdev <- sd(DATA$Dist_Water)
+Dist_Water_scaled <- eval.im((distw - mu)/stdev, DATA)
+# intercept only
+fit_intercept = ppm(lc_ppp ~ 1, data = DATA)
+fit1 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + hfi + I(hfi^2))
+fit1
+AIC(fit1); AIC(fit_intercept)
+anova(fit_intercept, fit1, test = "LRT") #LRT
+quadrat.test(fit1, nx = 2, ny = 4)
+#lurking variable plot
+lurking(fit1, forest, type = "raw", cumulative = F, envelope = T, xlab = "Forest Coverage (%)" )
+#lurking variable plot
+lurking(fit1, Dist_Water_scaled, type = "raw", cumulative = F, envelope = T, xlab = "Water Distance" )
+#partial residuals
+par_res_elev = parres(fit1, "Elevation_scaled")
+par_res_hfi = parres(fit1, 'hfi')
+par(mfrow = c(1,2))
+plot(par_res_elev,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Elevation Scaled")
+plot(par_res_hfi,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "HFI")
+par(mfrow = c(1,1))
+fit2 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + I(Elevation_scaled^3) + hfi + I(hfi^2))
+fit2
+AIC(fit1); AIC(fit2)
+anova(fit1, fit2, test = "LRT") #LRT
+#partial residuals
+par_res_elev = parres(fit2, "Elevation_scaled")
+par_res_hfi = parres(fit2, 'hfi')
+par(mfrow = c(1,2))
+plot(par_res_elev,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Elevation Scaled")
+plot(par_res_hfi,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "HFI")
+par(mfrow = c(1,1))
+#plotting ppm prediction
+plot(fit2,
+     se = FALSE,
+     superimpose = FALSE,
+     n = 150)
+plot(lc_ppp,
+     pch = 16,
+     cex = 0.6,
+     cols = "white",
+     add = TRUE)
+plot(lc_ppp,
+     pch = 16,
+     cex = 0.5,
+     cols = "black",
+     add = TRUE)
 ```
 
 
@@ -386,7 +621,7 @@ fit1 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + hfi + I(hfi^2))
 fit1
 ```
 
-In the fit1 model we can see that the coefficients are significant. We can also check the AIC score and likelihood ratio test.
+In the fit1 model we can see that the coefficients are significant. We can also check the AIC score and likelihood ratio test:
 
 ```{r}
 AIC(fit1); AIC(fit_intercept)
@@ -402,7 +637,7 @@ So based on AIC score and likelihood ratio test fit1 model is better.
 quadrat.test(fit1, nx = 2, ny = 4)
 ```
 
-The small p value tells us that the data deviate significantly from the model’s predictions.
+The small p value from the quadrat test tells us that the data deviate significantly from the model’s predictions.
 
 Let's check whether adding other covariates going to improve the model fit or not.
 
@@ -446,15 +681,26 @@ fit2 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + I(Elevation_scale
 fit2
 ```
 
+These values indicate that:
+
+* Lynx are less often observed at higher altitudes
+* Lynx are more often observed in areas of low human development (ie. rural areas/parks, etc.) compared to no development (ie. "middle of nowhere"), but less often in areas that are highly developed (ie. cities) 
+* Lynx distribution is not related to Forest coverage or distance to water 
+
+
+AIC values for squared model and cubed model, respectively:
+
 ```{r}
 AIC(fit1); AIC(fit2)
 ```
+
+Likelihood ratio test for squared and cubed models:
 
 ```{r}
 anova(fit1, fit2, test = "LRT") #LRT
 ```
 
-So the additional complexity supported by data.
+The small p-value indicates that the additional complexity supported by data.
 
 ```{r}
 #partial residuals
@@ -488,10 +734,20 @@ plot(fit2,
      se = FALSE,
      superimpose = FALSE,
      n = 150)
+# plot(lc_ppp,
+#      pch = 16,
+#      cex = 0.5,
+#      cols = "green",
+#      add = TRUE)
+plot(lc_ppp,
+     pch = 16,
+     cex = 0.6,
+     cols = "white",
+     add = TRUE)
 plot(lc_ppp,
      pch = 16,
      cex = 0.5,
-     cols = "green",
+     cols = "black",
      add = TRUE)
 ```
 
@@ -503,7 +759,7 @@ Many of our hypotheses were found to be true. We found in the plots that the ass
 
 We expected that lynx would be found at higher elevations, but looking at the plots, this was not the case. However, we believe the data is slightly biased because it only includes lynx sightings by humans. As lynx typically avoid humans, and areas where humans reside (as showing in the HFI plot), we believe that the majority of locations where the lynx are found have not been observed in this data. Humans are typically not in higher elevation areas, so they would not observe these areas as frequently as lower elevation areas, so the observations of the lynx are not truly representative.
 
-note - elevation was not predictive in any way in the model - the rho was being influenced by other things that were correlated
+note - forest coverage was not predictive in any way in the model - the rho was being influenced by other things that were correlated
 
 # References
 
