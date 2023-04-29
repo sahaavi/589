@@ -4,7 +4,7 @@ author: "Avishek Saha, Jonah Edmundson, Madison Greenough"
 date: "2023-04-10"
 output:
   html_document: default
-  pdf_document: default
+  #pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -25,9 +25,8 @@ The dataset contains 13 variables and there are 178 rows, or entries. The variab
 
 ## Workflow 
 
-To begin, first moment descriptive statistics were visualized. Basic `spatstat` features were used to transform to a `ppp` object, as well as visualize the spatial data on the appropriate window, which in this case, is the province of BC map. The elevation was also attached to the data, and basic elevation features were visualized on the window.
-
-ADD MORE HERE 
+To begin, first moment descriptive statistics were visualized. Basic `spatstat` features were used to transform to a `ppp` object, as well as visualize the spatial data on the appropriate window, which in this case, is the province of BC map. The elevation was also attached to the data, and basic elevation features were visualized on the window.   
+After that we examined the intensity of lynx locations and assessed homogeneity through a quadrat test, which revealed that the distribution was not homogenous. We then used inhomogeneous k-function and pair correlation function to investigate the correlation of lynx locations. Then we fitted models and selected them based on AIC scores and likelihood ratio test. Furthermore, we performed a quadrat test to determine if the selected model accurately predicts the data or if there are deviations.  Additionally, we explored the potential benefits of adding other covariates to our models. To assess the efficacy of our models, partial residual plots were used to identify whether our model capturing the data well or not.
 
 
 ## Code
@@ -101,8 +100,8 @@ We can take this a step further by splitting the window into quadrants to determ
 ```{r}
 #Split into a 10 by 10 quadrat and count points
 Q <- quadratcount(lc_ppp,
-                  nx = 10,
-                  ny = 10)
+                  nx = 2,
+                  ny = 4)
 # #Plot the output
 # plot(lc_ppp,
 #      pch = 16,
@@ -113,7 +112,7 @@ Q <- quadratcount(lc_ppp,
 # plot(Q, cex = 2, col = "red", add = T)
 ```
 
-We can also see the intensity with observations through colour.
+We can also see the intensity with observations through quadratcount.
 
 ```{r}
 #Plot the output Note the use of image = TRUE
@@ -160,7 +159,7 @@ The small p-value suggests that there is a significant deviation from homogeneit
 
 ### Nearest Neighbour Distances
 
-Now we can compute nearest neighbour distances.
+Now we can compute nearest neighbor distances.
 
 ```{r}
 col_pal <- colorRampPalette(c('orange', 'green'))
@@ -287,7 +286,7 @@ dist_water_classes <- cut(DATA$Dist_Water, breaks = 5, labels = c("low", "low-me
 
 #plot all at once
 par(mfrow = c(2,2))
-par(mar=c(0,0,0.2,0.1))
+par(mar=c(0,0,2,1))
 #1
 plot(elev_classes, col = cols, main = "Elevation Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
 points(lc_ppp, pch = 16, cex = 0.6, col = "black")
@@ -324,7 +323,7 @@ A non-parametric estimate of $\rho$ can be obtained via kernel estimation, avail
 
 We can see the plot of Rho with elevation.
 
-```{r}
+```{r cache=TRUE}
 #Estimate Rho
 hfi = DATA$HFI
 rho_hfi = rhohat(lc_ppp, hfi)
@@ -336,7 +335,7 @@ forest = DATA$Forest
 rho_forest = rhohat(lc_ppp, forest)
 
 par(mfrow = c(2,2))
-par(mar=c(0,0,0.2,0.1))
+par(mar=c(0,0,2,1))
 plot(rho_elev,
      main = "",
      xlab = "Elevation (m)", 
@@ -353,17 +352,25 @@ plot(rho_distw,
 par(mfrow = c(1,1))
 ```
 
-As the rho values varying at different elevations without and also the rho values are not close to 0 from 0 to 2000 elevation. So, there’s a non-linear relationship between elevation and Lynx intensity.
+There’s a non-linear relationship between elevation and lynx intensity. Majority of the lynx are at low elevations than would be expected by chance, fewer lynx at intermediate elevations and no lynx at high elevations.
 
 ```{r}
 #correlation
 cor.im(elev, forest, hfi, distw,  use = 'complete.obs')
 ```
 
+The correlation coefficients are relatively weak. We can proceed without too much worry.
 
 ### Model Fitting
 
 ```{r}
+# Convert to a ppp object
+lc_ppp <- ppp(x = lc$decimalLongitude, # X coordinates
+              y = lc$decimalLatitude, # Y coordinates
+              window = bc_window_owin, # Observation window
+              )
+lc_ppp <- as.ppp(lc_ppp)
+
 mu <- mean(DATA$Elevation)
 stdev <- sd(DATA$Elevation)
 Elevation_scaled <- eval.im((elev - mu)/stdev, DATA)
@@ -371,28 +378,85 @@ mu <- mean(DATA$Dist_Water)
 stdev <- sd(DATA$Dist_Water)
 Dist_Water_scaled <- eval.im((distw - mu)/stdev, DATA)
 
-# full fit
-fit1 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + forest + I(forest^2) + hfi + I(hfi^2) + Dist_Water_scaled + I(Dist_Water_scaled^2))
-#fit1
-
-# most parsimonious model
-fit2 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + hfi + I(hfi^2))
-fit2
 
 # intercept only
-fit_intercept = ppm(lc_ppp ~ 1)
-#fit_intercept
+fit_intercept = ppm(lc_ppp ~ 1, data = DATA)
+
+fit1 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + hfi + I(hfi^2))
+fit1
 ```
 
-Model Diagnostics:
+In the fit1 model we can see that the coefficients are significant. We can also check the AIC score and likelihood ratio test.
 
 ```{r}
-AIC(fit1); AIC(fit2); AIC(fit_intercept)
-AIC(fit2) - AIC(fit1) #delta AIC
-anova(fit2, fit1, test = "LRT") #LRT
-quadrat.test(fit2, nx = 2, ny = 4)
-diagnose.ppm(fit2)
+AIC(fit1); AIC(fit_intercept)
+```
 
+```{r}
+anova(fit_intercept, fit1, test = "LRT") #LRT
+```
+
+So based on AIC score and likelihood ratio test fit1 model is better.
+
+```{r}
+quadrat.test(fit1, nx = 2, ny = 4)
+```
+
+The small p value tells us that the data deviate significantly from the model’s predictions.
+
+Let's check whether adding other covariates going to improve the model fit or not.
+
+```{r}
+#lurking variable plot
+lurking(fit1, forest, type = "raw", cumulative = F, envelope = T, xlab = "Forest Coverage (%)" )
+```
+
+It appears that the forest coverage variable may not be significant in the model, hence we could investigate the impact of water distance instead.
+
+```{r}
+#lurking variable plot
+lurking(fit1, Dist_Water_scaled, type = "raw", cumulative = F, envelope = T, xlab = "Water Distance" )
+```
+
+So, water distance is unrelated to trends in the residuals. We can diagnose our model further by partial residual plots to check how we can improve.
+
+```{r}
+#partial residuals
+par_res_elev = parres(fit1, "Elevation_scaled")
+par_res_hfi = parres(fit1, 'hfi')
+
+par(mfrow = c(1,2))
+plot(par_res_elev,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "Elevation Scaled")
+plot(par_res_hfi,
+     legend = FALSE,
+     lwd = 2,
+     main = "",
+     xlab = "HFI")
+par(mfrow = c(1,1))
+```
+
+From these figures we can see that the quadratic term of hfi is capturing the patterns in our data particularly well but we can improve the elevation by adding higher order plynomials.
+
+```{r}
+fit2 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + I(Elevation_scaled^3) + hfi + I(hfi^2))
+fit2
+```
+
+```{r}
+AIC(fit1); AIC(fit2)
+```
+
+```{r}
+anova(fit1, fit2, test = "LRT") #LRT
+```
+
+So the additional complexity supported by data.
+
+```{r}
 #partial residuals
 par_res_elev = parres(fit2, "Elevation_scaled")
 par_res_hfi = parres(fit2, 'hfi')
@@ -402,7 +466,7 @@ plot(par_res_elev,
      legend = FALSE,
      lwd = 2,
      main = "",
-     xlab = "Elevation Scaled (m)")
+     xlab = "Elevation Scaled")
 plot(par_res_hfi,
      legend = FALSE,
      lwd = 2,
@@ -411,12 +475,9 @@ plot(par_res_hfi,
 par(mfrow = c(1,1))
 ```
 
-Forest not predictive:
+In addition, the inclusion of extra elevation polynomial term slightly enhances the accuracy of the model predictions.
 
-```{r}
-#lurking variable plot
-lurking(fit2, forest, type = "raw", cumulative = F, envelope = T, xlab = "Forest Coverage (%)" )
-```
+Since the model is already performing well, we are not considering to add any additional complexity to it.
 
 Plotting `ppm` predictions:
 
@@ -425,29 +486,22 @@ Plotting `ppm` predictions:
 #plotting ppm prediction
 plot(fit2,
      se = FALSE,
-     superimpose = FALSE)
-plot(lc_ppp,
-     pch = 16,
-     cex = 0.6,
-     cols = "white",
-     add = TRUE)
+     superimpose = FALSE,
+     n = 150)
 plot(lc_ppp,
      pch = 16,
      cex = 0.5,
-     cols = "black",
+     cols = "green",
      add = TRUE)
 ```
 
-
-
-
-
+There are still locations where the model seems to not be a particularly good match to the data, but it is actually performing reasonably well considering that we are predicting the locations of lynx in BC based on only elevation and human footprint index, and have no information on all of the many other factors that might influence lynx locations.
 
 # Discussion (1 pg - brief summary of findings)
 
 Many of our hypotheses were found to be true. We found in the plots that the assumption of homogeneity is not appropriate for this Lynx dataset because the Lynx were clustered in certain areas of the observation window, whereas other locations had no Lynx at all. We also found that Lynx are animals that travel in either small groups or nomadically, as the nearest neighbour distances were quite large, showing that they typically stick to their territory and are not located close by each other.
 
-We expected that lynx would be found at higher elevations, but looking at the plots, this was not the case. However, we believe the data is slightly biased because it only includes lynx sightings by humans. As lynx typically avoid humans, and areas where humans reside (as showin in the HFI plot), we believe that the majority of locations where the lynx are found have not been observed in this data. Humans are typically not in higher elevation areas, so they would not observe these areas as frequently as lower elevation areas, so the observations of the lynx are not truly representative.
+We expected that lynx would be found at higher elevations, but looking at the plots, this was not the case. However, we believe the data is slightly biased because it only includes lynx sightings by humans. As lynx typically avoid humans, and areas where humans reside (as showing in the HFI plot), we believe that the majority of locations where the lynx are found have not been observed in this data. Humans are typically not in higher elevation areas, so they would not observe these areas as frequently as lower elevation areas, so the observations of the lynx are not truly representative.
 
 note - elevation was not predictive in any way in the model - the rho was being influenced by other things that were correlated
 
