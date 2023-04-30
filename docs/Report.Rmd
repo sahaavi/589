@@ -11,11 +11,11 @@ output:
 knitr::opts_chunk$set(echo = FALSE, cache = TRUE, warning=FALSE)
 ```
 
-# Introduction (1 pg)
+# Introduction
 
-The Canadian Lynx, known scientifically as the _Lynx canadensis Kerr_, are a marvelous species found within British Columbia. For this report, a spatial analysis of this species will be conducted. They will be referred to as their shorter name, Lynx, for the duration of this report. Given that the Lynx are a part of the feline family, we hypothesize that they will habitate in forested areas, in small groups, with minimal movement. In other words, we expect that they will reside in an area long term without significant travelling or relocating. We also predict that they will reside in colder locations, so their presence may not be found in the warmer areas of BC, such as the southern interior. We expect that we cannot assume homogeneity for this specific species, as we expect the lynx to be found in clusters rather than evenly distributed across BC. We expect that the lynx would be found at higher elevations due to their thicker coats and natural behaviours.  
+The Canadian Lynx, known scientifically as the _Lynx canadensis Kerr_, are a marvelous species found within British Columbia. For this report, a spatial analysis of this species will be conducted. They will be referred to as their shorter name, lynx, for the duration of this report. Given that the lynx are a part of the feline family, we hypothesize that they will habitate in forested areas, in small groups, with minimal movement. In other words, we expect that they will reside in an area long term without significant travelling or relocating. We also predict that they will reside in colder locations, so their presence may not be found in the warmer areas of BC, such as the southern interior. We expect that we cannot assume homogeneity for this specific species, as we expect the lynx to be found in clusters rather than evenly distributed across BC. We expect that the lynx would be found at higher elevations due to their thicker coats and natural behaviours.  
 
-![See an image of lynx found in BC.](../docs/lynx.jpg)
+![See above an image of two lynx found in BC.](../docs/lynx.jpg)
 
 # Methods
 
@@ -484,7 +484,7 @@ plot(pcf_lc_inhom, xlim = c(0,20000), main = "", lwd = 2)
 There appear to be more lynx than expected by random chance between 0 - 13500 as $g(r) > 1$. Beyond that, the locations of lynx appear not to exhibit any significant correlations.
 
 
-## Relationships with covariates
+## Relationships with Covariates
 
 We are usually interested in determining whether the intensity depends on a covariate(s). One simple approach to check for a relationship between inhomogeneous $\lambda(u)$ and a spatial covariate $Z(u)$ is via quadrat counting. We can create five elevation classes with equal width below.
 
@@ -587,7 +587,7 @@ plot(rho_distw,
 par(mfrow = c(1,1))
 ```
 
-There’s a non-linear relationship between elevation and lynx intensity. Majority of the lynx are at low elevations than would be expected by chance, fewer lynx at intermediate elevations and no lynx at high elevations.
+There is a non-linear relationship between elevation and lynx intensity. Majority of the lynx are at low elevations than would be expected by chance, fewer lynx at intermediate elevations and no lynx at high elevations.
 
 ```{r}
 #correlation
@@ -674,7 +674,7 @@ plot(par_res_hfi,
 par(mfrow = c(1,1))
 ```
 
-From these figures we can see that the quadratic term of hfi is capturing the patterns in our data particularly well but we can improve the elevation by adding higher order plynomials.
+From these figures we can see that the quadratic term of HFI is capturing the patterns in our data particularly well but we can improve the elevation by adding higher order plynomials.
 
 ```{r}
 fit2 = ppm(lc_ppp ~ Elevation_scaled + I(Elevation_scaled^2) + I(Elevation_scaled^3) + hfi + I(hfi^2))
@@ -685,8 +685,7 @@ These values indicate that:
 
 * Lynx are less often observed at higher altitudes
 * Lynx are more often observed in areas of low human development (ie. rural areas/parks, etc.) compared to no development (ie. "middle of nowhere"), but less often in areas that are highly developed (ie. cities) 
-* Lynx distribution is not related to Forest coverage or distance to water 
-
+* Lynx distribution is not related to forest coverage or distance to water 
 
 AIC values for squared model and cubed model, respectively:
 
@@ -753,13 +752,16 @@ plot(lc_ppp,
 
 There are still locations where the model seems to not be a particularly good match to the data, but it is actually performing reasonably well considering that we are predicting the locations of lynx in BC based on only elevation and human footprint index, and have no information on all of the many other factors that might influence lynx locations.
 
-# Discussion (1 pg - brief summary of findings)
+# Discussion
 
 Many of our hypotheses were found to be true. We found in the plots that the assumption of homogeneity is not appropriate for this Lynx dataset because the Lynx were clustered in certain areas of the observation window, whereas other locations had no Lynx at all. We also found that Lynx are animals that travel in either small groups or nomadically, as the nearest neighbour distances were quite large, showing that they typically stick to their territory and are not located close by each other.
 
 We expected that lynx would be found at higher elevations, but looking at the plots, this was not the case. However, we believe the data is slightly biased because it only includes lynx sightings by humans. As lynx typically avoid humans, and areas where humans reside (as showing in the HFI plot), we believe that the majority of locations where the lynx are found have not been observed in this data. Humans are typically not in higher elevation areas, so they would not observe these areas as frequently as lower elevation areas, so the observations of the lynx are not truly representative.
 
-note - forest coverage was not predictive in any way in the model - the rho was being influenced by other things that were correlated
+As mentioned above when summarizing the model, forest coverage was not predictive in the model. The rho plot appeared as though there may be a relationship, but it was being influenced by other factors in the model that were correlated with this covariate. Similarly, distance to water was not influential in the lynx distribution of this dataset. Although this may seem strange, we can again question these results using the same logic as mentioned above regarding the elevation. Naturally, lynx need water to survive, so you would expect that they do reside within a certain distance of a water source, so this leads us to question our results slightly. Additionally, as eluded to above, lynx are more often observed in areas of low human development, such as rural areas or parks, rather than highly developed areas such as cities. However, this does not include areas with no development, such as forests, where we would expect to find lynx. This means that the true areas where lynx are found are not properly represented in this dataset, as areas with no HFI are difficult to access and are not regularly tracked, so this is important to consider when interpreting results. 
+
+Overall, we can make a few inferences as mentioned above regarding the lynx species in BC, but given that the data had fewer than 200 observation points, despite the lynx population in BC being estimated at much larger amounts, this needs to be taken into account. In the future, it would be beneficial to complete an analysis with a larger dataset to either confirm or reassess our results.
+
 
 # References
 
