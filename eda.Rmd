@@ -188,7 +188,7 @@ plot(rho,
      main = "Rho vs elevation")
 ```
 
-There’s a non-linear relationship between elevation and lynx intensity. Majority of the lynx are at low elevations than would be expected by chance, fewer parks at intermediate elevations and no parks at high elevations.
+There’s a non-linear relationship between elevation and lynx intensity. Majority of the lynx are at low elevations than would be expected by chance, fewer lynx at intermediate elevations and no lynx at high elevations.
 
 ```{r}
 #Estimate Rho
