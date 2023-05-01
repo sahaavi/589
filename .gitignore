@@ -21,6 +21,9 @@
 .Rproj.user/
 /*_files
 
+# supporting files
+brainstorming/
+
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
