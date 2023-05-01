@@ -1,10 +1,11 @@
 ---
-title: "Report"
+title: "Canada-Lynx-Spatial-Analysis"
 author: "Avishek Saha, Jonah Edmundson, Madison Greenough"
 date: "2023-04-10"
 output:
-  html_document: default
-  #pdf_document: default
+  #html_document: default
+  pdf_document: default
+always_allow_html: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -127,26 +128,34 @@ library(viridis)
 library(viridisLite)
 cols = terrain.colors(5)
 # Create 5 elevation classes with equal width
-elev_classes <- cut(DATA$Elevation, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+elev_classes <- cut(DATA$Elevation, 
+                    breaks = 5, 
+                    labels = c("low", "low-medium", "medium", "high-medium", "high"))
 #table(elev_classes[lc_ppp])
 # Plot the elevation class image and overlay the lynx locations
 # plot(elev_classes, col = cols, main = "Elevation Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
 # points(lc_ppp, pch = 16, cex = 0.6, col = "black")
 
 # Create 5 forest classes with equal width
-forest_classes <- cut(DATA$Forest, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+forest_classes <- cut(DATA$Forest, 
+                      breaks = 5, 
+                      labels = c("low", "low-medium", "medium", "high-medium", "high"))
 #table(forest_classes[lc_ppp])
 # plot(forest_classes, col = cols, main = "Forest Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
 # points(lc_ppp, pch = 16, cex = 0.6, col = "black")
 
 # Create 5 human footprint index classes with equal width
-hfi_classes <- cut(DATA$HFI, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+hfi_classes <- cut(DATA$HFI, 
+                   breaks = 5, 
+                   labels = c("low", "low-medium", "medium", "high-medium", "high"))
 #table(hfi_classes[lc_ppp])
 # plot(hfi_classes, main = "Footprint Index Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
 # points(lc_ppp, pch = 16, cex = 0.5, col = "white")
 
 # Create 5 dist water classes with equal width
-dist_water_classes <- cut(DATA$Dist_Water, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+dist_water_classes <- cut(DATA$Dist_Water, 
+                          breaks = 5, 
+                          labels = c("low", "low-medium", "medium", "high-medium", "high"))
 #table(dist_water_classes[lc_ppp])
 # plot(dist_water_classes, main = "Dist Water Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
 # points(lc_ppp, pch = 16, cex = 0.5, col = "white")
@@ -495,26 +504,34 @@ library(viridis)
 library(viridisLite)
 cols = terrain.colors(5)
 # Create 5 elevation classes with equal width
-elev_classes <- cut(DATA$Elevation, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+elev_classes <- cut(DATA$Elevation, 
+                    breaks = 5,
+                    labels = c("low", "low-medium", "medium", "high-medium", "high"))
 #table(elev_classes[lc_ppp])
 # Plot the elevation class image and overlay the lynx locations
 # plot(elev_classes, col = cols, main = "Elevation Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
 # points(lc_ppp, pch = 16, cex = 0.6, col = "black")
 
 # Create 5 forest classes with equal width
-forest_classes <- cut(DATA$Forest, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+forest_classes <- cut(DATA$Forest,
+                      breaks = 5,
+                      labels = c("low", "low-medium", "medium", "high-medium", "high"))
 #table(forest_classes[lc_ppp])
 # plot(forest_classes, col = cols, main = "Forest Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
 # points(lc_ppp, pch = 16, cex = 0.6, col = "black")
 
 # Create 5 human footprint index classes with equal width
-hfi_classes <- cut(DATA$HFI, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+hfi_classes <- cut(DATA$HFI, 
+                   breaks = 5, 
+                   labels = c("low", "low-medium", "medium", "high-medium", "high"))
 #table(hfi_classes[lc_ppp])
 # plot(hfi_classes, main = "Footprint Index Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
 # points(lc_ppp, pch = 16, cex = 0.5, col = "white")
 
 # Create 5 dist water classes with equal width
-dist_water_classes <- cut(DATA$Dist_Water, breaks = 5, labels = c("low", "low-medium", "medium", "high-medium", "high"))
+dist_water_classes <- cut(DATA$Dist_Water, 
+                          breaks = 5, 
+                          labels = c("low", "low-medium", "medium", "high-medium", "high"))
 #table(dist_water_classes[lc_ppp])
 # plot(dist_water_classes, main = "Dist Water Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
 # points(lc_ppp, pch = 16, cex = 0.5, col = "white")
@@ -523,7 +540,10 @@ dist_water_classes <- cut(DATA$Dist_Water, breaks = 5, labels = c("low", "low-me
 par(mfrow = c(2,2))
 par(mar=c(0,0,2,1))
 #1
-plot(elev_classes, col = cols, main = "Elevation Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
+plot(elev_classes, 
+     col = cols, 
+     main = "Elevation Classes", 
+     par(bg="grey50", cex.main = 2, cex = 0.6))
 points(lc_ppp, pch = 16, cex = 0.6, col = "black")
 #2
 plot(forest_classes, col = cols, main = "Forest Classes", par(bg="grey50", cex.main = 2, cex = 0.6))
@@ -552,7 +572,7 @@ Computing the same for water classes.
 
 Based on a visual inspection, it appears that the heterogeneity observed in the data may be associated with a preference for certain elevations and distances from water.
 
-More formally, in testing for relationships with covariates we are assuming that $λ$ is a function of $Z$, such that $$\lambda(u)=\rho(Z(u))$$
+More formally, in testing for relationships with covariates we are assuming that $\lambda$ is a function of $Z$, such that $$\lambda(u)=\rho(Z(u))$$
 
 A non-parametric estimate of $\rho$ can be obtained via kernel estimation, available via the rhohat() function.
 
